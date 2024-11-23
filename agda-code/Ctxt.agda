@@ -69,6 +69,16 @@ strengthenCtxt {[]} (nextInCtxt i x) ne = i
 strengthenCtxt {z :: Γ'} foundInCtxt ne = foundInCtxt
 strengthenCtxt {z :: Γ'} (nextInCtxt i x) ne = nextInCtxt (strengthenCtxt{Γ' = Γ'} i ne) x
 
+#-deterministic : ∀{v : V}{Γ : Ctxt} →
+                   (a : v # Γ) →
+                   (a' : v # Γ) →
+                   a ≡ a'
+#-deterministic #empty #empty = refl
+#-deterministic (#skip{v}{y} a x) (#skip a' x') rewrite ≃-uip x x' | #-deterministic a a' = refl
+
+
+
+
 
 {-
 

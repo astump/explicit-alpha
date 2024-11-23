@@ -31,8 +31,10 @@ open import Tau vi
 ↝α : ∀{Γ : Ctxt} → Rel (Tm Γ)
 ↝α = τ α
 
+{-
 =α : ∀{Γ : Ctxt} → Rel (Tm Γ)
 =α = ↝α ⋆
+-}
 
 ----------------------------------------------------------------------
 -- Theorems about α
@@ -40,8 +42,12 @@ open import Tau vi
 
 {-
 α-symm : ∀{Γ : Ctxt} → R.symmetric (α{Γ})
-α-symm {Γ}{ƛ x t1} {ƛ y t2} (tw , w , te , e , s) = {!!} , {!!} , {!!} , {!!} , {!!}
+α-symm {Γ}{ƛ x t1} {ƛ y t2} (tw , w , te , e , s) =
+  {!!} , {!!} , {!!} , {!!} , {!!}
 
+-}
+
+{-
 ↝α-symm : ∀{Γ : Ctxt} → R.symmetric (↝α{Γ})
 ↝α-symm = τ-symm α-symm
 -}

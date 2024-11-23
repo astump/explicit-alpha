@@ -40,3 +40,11 @@ weakenTrivSym : ∀{Γ : Ctxt}{t t' : Tm Γ} →
                 Weaken t' t
 weakenTrivSym w with weakenTriv w
 weakenTrivSym w | refl = w
+
+weakenDeterministic : ∀{Γ' Γ : Ctxt}{t1 : Tm Γ}{t2 t2' : Tm (Γ' ++ Γ)} →
+                       Weaken t1 t2 →
+                       Weaken t1 t2' →
+                       t2 ≡ t2'
+weakenDeterministic (weakenVar i a) (weakenVar .i a') rewrite #-deterministic a a' = refl
+weakenDeterministic (weakenApp w1 w2) (weakenApp w1' w2') rewrite weakenDeterministic w1 w1' | weakenDeterministic w2 w2' = refl
+weakenDeterministic (weakenLam w x) (weakenLam w' x') rewrite weakenDeterministic w w' | exchangeDeterministic x x' = refl

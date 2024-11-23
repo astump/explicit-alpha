@@ -1,4 +1,5 @@
 open import lib
+open import relations
 open import VarInterface
 
 module Beta(vi : VI) where
@@ -20,5 +21,5 @@ open import Alpha vi
 ↝αβ : ∀{Γ : Ctxt} → Rel (Tm Γ)
 ↝αβ = ↝α ∪ ↝β
 
-↝ : ∀{Γ : Ctxt} → Rel (Tm Γ)
-↝ = =α ∘ ↝β ∘ =α
+deterministic-β : ∀{Γ : Ctxt} → deterministic (β{Γ})
+deterministic-β{Γ}{(ƛ x t1) · t2} d1 d2  = substDeterministic d1 d2

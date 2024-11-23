@@ -13,16 +13,57 @@ open import Beta vi
 open import Alpha vi 
 open import Parallel vi
 
-diamond-⇒ : ∀{Γ : Ctxt} → diamond (⇒{Γ})
-diamond-⇒ ⇒var ⇒var = , ⇒var , ⇒var
-diamond-⇒ (⇒app d1 d2) (⇒app d1' d2') with diamond-⇒ d1 d1' | diamond-⇒ d2 d2'
-diamond-⇒ (⇒app d1 d2) (⇒app d1' d2') | , r1 , r2 | , r1' , r2' = , ⇒app r1 r1' , ⇒app r2 r2'
-diamond-⇒ (⇒app (⇒lam d1) d2) (⇒beta d1' d2' be) = {!!}
-diamond-⇒ (⇒lam d) (⇒lam d') with diamond-⇒ d d'
-diamond-⇒ (⇒lam d) (⇒lam d') | , r1 , r2 = , ⇒lam r1 , ⇒lam r2
-diamond-⇒ (⇒beta d1 d2 be) (⇒app (⇒lam d1') d2') = {!!}
-diamond-⇒ (⇒beta d1 d2 be) (⇒beta d1' d2' be') with diamond-⇒ d1 d1' | diamond-⇒ d2 d2'
-diamond-⇒ (⇒beta d1 d2 be) (⇒beta d1' d2' be') | , r1 , r2 | , r1' , r2' = , {!!} , {!!}
+{- a generic proof of the diamond property for parallel reduction, assuming that
+
+   1. r commutes with ⇒c r, and
+   2. r itself has the subdiamond property
+-}
+mutual 
+ diamond-⇒ : ∀{r : ∀{Γ} → Rel (Tm Γ)} →
+              ({Γ : Ctxt} → commute (r {Γ}) (⇒c r {Γ})) → 
+              ({Γ : Ctxt} → subdiamond (r {Γ})) → 
+              {Γ : Ctxt} → diamond (⇒ r {Γ})
+ diamond-⇒ comm dr (⇒ctxt d) (⇒ctxt d') with diamond-⇒c comm dr d d'
+ diamond-⇒ comm dr (⇒ctxt d) (⇒ctxt d') | , r , r' = , ⇒ctxt r , ⇒ctxt r'
+ diamond-⇒ comm dr (⇒ctxt d) (⇒base d' s) with diamond-⇒c comm dr d d'
+ diamond-⇒ comm dr (⇒ctxt d) (⇒base d' s) | , r , r' with comm s r' 
+ diamond-⇒ comm dr (⇒ctxt d) (⇒base d' s) | , r , r' | , w , w' = , ⇒base r w' , ⇒ctxt w
+ diamond-⇒ comm dr (⇒base d s) (⇒ctxt d') with diamond-⇒c comm dr d d' 
+ diamond-⇒ comm dr (⇒base d s) (⇒ctxt d') | , r , r' with comm s r
+ diamond-⇒ comm dr (⇒base d s) (⇒ctxt d') | , r , r' | , w , w' = , ⇒ctxt w , ⇒base r' w'
+ diamond-⇒ comm dr (⇒base d s) (⇒base d' s') with diamond-⇒c comm dr d d' 
+ diamond-⇒ comm dr (⇒base d s) (⇒base d' s') | , r , r' with comm s r | comm s' r' 
+ diamond-⇒ comm dr (⇒base d s) (⇒base d' s') | , r , r' | , w , w' | , u , u' with dr u' w' 
+ diamond-⇒ comm dr (⇒base d s) (⇒base d' s') | , r , r' | , w , w' | , u , u' | inj₁ refl = , ⇒ctxt w , ⇒ctxt u
+ diamond-⇒ comm dr (⇒base d s) (⇒base d' s') | , r , r' | , w , w' | , u , u' | inj₂ (, z , z') = , ⇒base w z' , ⇒base u z 
+ diamond-⇒c : ∀{r : ∀{Γ} → Rel (Tm Γ)} → 
+              ({Γ : Ctxt} → commute (r {Γ}) (⇒c r {Γ})) → 
+              ({Γ : Ctxt} → subdiamond (r {Γ})) → 
+              {Γ : Ctxt} → diamond (⇒c r {Γ})
+ diamond-⇒c comm dr ⇒var ⇒var = , ⇒var , ⇒var
+ diamond-⇒c comm dr (⇒app d1 d2) (⇒app d1' d2') with diamond-⇒ comm dr d1 d1' | diamond-⇒ comm dr d2 d2'
+ diamond-⇒c comm dr (⇒app d1 d2) (⇒app d1' d2') | , r1 , r1' | , r2 , r2' = , ⇒app r1 r2 , ⇒app r1' r2'
+ diamond-⇒c comm dr (⇒lam d) (⇒lam d') with diamond-⇒ comm dr d d'
+ diamond-⇒c comm dr (⇒lam d) (⇒lam d') | , r , r' = , ⇒lam r , ⇒lam r' 
+
+
+{-
+Subst-⇒ : ∀{Γ : Ctxt}{t2 t2' : Tm Γ}{x y : V}{t1 t1' : Tm (x :: Γ)}{m : Tm Γ →
+            Subst t2 x t1 m →
+            t2 ⟨ ⇒ β ⟩ t2' →
+            ƛ y t1 ⟨ ⇒ β ⟩ t1' →            
+            m ⟨ ⇒ β ⟩ (t1' · t2')
+-}
+
+commute-β : ∀{Γ : Ctxt} → commute (β {Γ}) (⇒c β {Γ}) 
+commute-β s (⇒app {t1 = ƛ y t1} d1 d2) = {!!}
+
+subdiamond-β : ∀{Γ : Ctxt} → subdiamond (β {Γ})
+subdiamond-β{Γ}{(ƛ y t1) · t2}{r1}{r2} s s' = inj₁ (substDeterministic s s')
+
+diamond-⇒β : ∀{Γ : Ctxt} → diamond (⇒ β {Γ})
+diamond-⇒β = diamond-⇒{β} {!!} λ{Γ}{x : Tm Γ} → subdiamond-β{Γ}{x}
+
 {-
 confluent-↝αβ : confluent ↝αβ
 confluent-↝αβ = mediator-diamond ↝αβ-⇒ ⇒-↝αβ⋆ diamond-⇒-}

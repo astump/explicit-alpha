@@ -33,3 +33,14 @@ exchangeTriv : ∀{Γ' Γ : Ctxt}{x : V}{t t' : Tm (Γ' ++ x :: Γ)} →
 exchangeTriv (exchangeVar i #empty) rewrite inCtxtExchangeTriv i = refl
 exchangeTriv (exchangeApp e1 e2) rewrite exchangeTriv e1 | exchangeTriv e2 = refl
 exchangeTriv (exchangeLam e) rewrite exchangeTriv e = refl
+
+exchangeDeterministic : ∀{Γ'' Γ' Γ : Ctxt}{x : V} 
+                         {t : Tm (Γ'' ++ Γ' ++ x :: Γ)}
+                         {t1 : Tm (Γ'' ++ x :: Γ' ++ Γ)} →
+                         {t2 : Tm (Γ'' ++ x :: Γ' ++ Γ)} →                          
+                         Exchange t t1 →
+                         Exchange t t2 →                         
+                         t1 ≡ t2
+exchangeDeterministic (exchangeVar i a) (exchangeVar .i a') rewrite #-deterministic a a' = refl
+exchangeDeterministic (exchangeApp e1 e2) (exchangeApp e1' e2') rewrite exchangeDeterministic e1 e1' | exchangeDeterministic e2 e2' = refl
+exchangeDeterministic (exchangeLam e) (exchangeLam e') rewrite exchangeDeterministic e e' = refl

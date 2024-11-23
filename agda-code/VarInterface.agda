@@ -35,6 +35,11 @@ record VI : Set₁ where
   ≃-⊥ : ∀{x : V} → (x ≃ x) ≡ ff → ∀{X : Set} → X
   ≃-⊥{x} u rewrite ≃-refl{x} with u
   ≃-⊥{x} u | ()
+
+  ≃-uip : ∀{x y : V}{b : 𝔹}(p q : x ≃ y ≡ b) → p ≡ q
+  ≃-uip{x}{y} p q with x ≃ y 
+  ≃-uip{x}{y} refl refl | u = refl
+
 ----------------------------------------------------------------------
 -- an implementation of the above interface based on V = ℕ
 
@@ -76,3 +81,4 @@ VI-ℕ = record {
         fresh-distinct = λ {l2} → fresh-ℕ-distinct{[]}{l2} ;
         fresh-extend = λ{x}{l1}{l2} → fresh-ℕ-extend{x}{l1}{l2}
         }
+
