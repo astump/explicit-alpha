@@ -7,7 +7,6 @@ module Alpha(vi : VI) where
 open VI vi
 open import Tm vi
 open import Ctxt vi
-open import Exchange vi
 open import Weaken vi
 open import Subst vi
 open import Tau vi
@@ -20,11 +19,9 @@ open import Tau vi
 α : ∀{Γ : Ctxt} → Rel (Tm Γ)
 α{Γ} (ƛ x t1) (ƛ y t1') = 
 
-  (Σ[ t2 ∈ Tm (y :: x :: Γ) ] Weaken{y :: []} t1 t2 ∧
+  Σ[ t2 ∈ Tm (x :: y :: Γ) ] Weaken{[ x ]}{[ y ]}{Γ} t1 t2 ∧
 
-  (Σ[ t3 ∈ Tm (x :: y :: Γ) ] Exchange{[]}{y :: []} t2 t3 ∧
-
-  Subst{[]} (var y foundInCtxt) x t3 t1'))
+  Subst{[]} (var y foundInCtxt) x t2 t1'
 
 α _ _ = ⊥
 
@@ -40,12 +37,10 @@ open import Tau vi
 -- Theorems about α
 ----------------------------------------------------------------------
 
-{-
 α-symm : ∀{Γ : Ctxt} → R.symmetric (α{Γ})
-α-symm {Γ}{ƛ x t1} {ƛ y t2} (tw , w , te , e , s) =
-  {!!} , {!!} , {!!} , {!!} , {!!}
+α-symm {Γ}{ƛ x t1} {ƛ y t1'} (tw , w , s) =
+  {!!} , {!!} , {!!} 
 
--}
 
 {-
 ↝α-symm : ∀{Γ : Ctxt} → R.symmetric (↝α{Γ})
