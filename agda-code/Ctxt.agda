@@ -23,6 +23,11 @@ data _#_ : V → Ctxt → Set where
           x ≃ y ≡ ff →
           x # (y :: Γ)
 
+ctxtDrop : V → Ctxt → Ctxt
+ctxtDrop = remove _≃_ 
+
+{-
+
 #-++ : ∀{x : V}{Γ1 Γ2 : Ctxt} →
         x # Γ1 →
         x # Γ2 →
@@ -134,3 +139,5 @@ inCtxt# foundInCtxt (#skip a x) = ~≃-sym x
 inCtxt# (nextInCtxt i x) (#skip a x₁) = inCtxt# i a
 -}
 -}-}
+
+-}

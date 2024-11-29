@@ -7,42 +7,48 @@ module Alpha(vi : VI) where
 open VI vi
 open import Tm vi
 open import Ctxt vi
-open import Weaken vi
+open import Beta vi
+open import Apart vi
 open import Subst vi
 open import Tau vi
 
-{- (ƛ x t1) and (ƛ y t1') are α-equivalent iff
-   we can rename y to x in t1 and get t1'.  To apply the substitution,
-   though, we need to make sure that we can weaken in y and then exchange
-   it with x, in the typing of t1 -}
+{- (ƛ x t1) and (ƛ y t1') are related by bare α iff
 
-α : ∀{Γ : Ctxt} → Rel (Tm Γ)
-α{Γ} (ƛ x t1) (ƛ y t1') = 
+   1. y is not free in t1
+   2. (safely) substituting y for x in t1 yields t1'
+-}
 
-  Σ[ t2 ∈ Tm (x :: y :: Γ) ] Weaken{[ x ]}{[ y ]}{Γ} t1 t2 ∧
-
-  Subst{[]} (var y foundInCtxt) x t2 t1'
+α : Rel Tm
+α (ƛ x t1) (ƛ y t1') = Apart t1 [ y ] ∧ Subst [] (var y) x t1 t1' 
 
 α _ _ = ⊥
 
-↝α : ∀{Γ : Ctxt} → Rel (Tm Γ)
-↝α = τ α
+{- single-step α-reduction
 
-{-
-=α : ∀{Γ : Ctxt} → Rel (Tm Γ)
-=α = ↝α ⋆
--}
+   A single α-renaming is allowed anywhere in the first term to reach the second.
+   But this renaming has to preserve β-reductions: any time the first term could
+   β-reduce, the second term can, too, to an α-related result -}
+↝α : Rel Tm
+↝α t1 t2 =
+
+  t1 ⟨ τ α ⟩ t2 ∧
+
+  -- whenever t1 β-steps, so does t2; and the two resulting terms are related by τ α
+  (∀ (t1' : Tm) →
+      t1 ⟨ ↝β ⟩ t1' →
+      Σ[ t2' ∈ Tm ]
+         t2 ⟨ ↝β ⟩ t2' ∧
+         t1' ⟨ τ α ⟩ t2') 
 
 ----------------------------------------------------------------------
 -- Theorems about α
 ----------------------------------------------------------------------
 
-α-symm : ∀{Γ : Ctxt} → R.symmetric (α{Γ})
-α-symm {Γ}{ƛ x t1} {ƛ y t1'} (tw , w , s) =
-  {!!} , {!!} , {!!} 
-
 
 {-
+α-symm : R.symmetric α
+α-symm {ƛ x t1} {ƛ y t1'} s = {!!}
+
 ↝α-symm : ∀{Γ : Ctxt} → R.symmetric (↝α{Γ})
 ↝α-symm = τ-symm α-symm
 -}
