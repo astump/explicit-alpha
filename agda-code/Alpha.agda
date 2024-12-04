@@ -11,58 +11,41 @@ open import Beta vi
 open import Apart vi
 open import Subst vi
 open import Tau vi
+open import Vartree vi
 
-{- (ƛ x t1) and (ƛ y t1') are related by bare α iff
+Renaming : Set
+Renaming = 𝕃 (V × V)
 
-   1. y is not free in t1
-   2. (safely) substituting y for x in t1 yields t1'
--}
+data Lookup (x : V) : Renaming → V → Set where
+  found : ∀{ρ : Renaming}{y : V} →
+           Lookup x ((x , y) :: ρ) y
+  next :  ∀{ρ : Renaming}{x' y y' : V} →
+           Lookup x ρ y →
+           x ≃ x' ≡ ff → 
+           Lookup x ((x' , y') :: ρ) y
 
-α : Rel Tm
-α (ƛ x t1) (ƛ y t1') = Apart t1 [ y ] ∧ Subst [] (var y) x t1 t1' 
+data Rename : Renaming → Tm → Tm → Set where
+ renameMiss : ∀{ρ : Renaming}{x : V} →
+               (∀ (y : V) → ¬ Lookup x ρ y) →
+               Rename ρ (var x) (var x)
+ renameHit : ∀{ρ : Renaming}{x y : V} →
+              Lookup x ρ y →
+              Rename ρ (var x) (var y)
+ renameApp : ∀{ρ : Renaming}{t1 t1' t2 t2' : Tm} → 
+              Rename ρ t1 t1' →
+              Rename ρ t2 t2' →
+              Rename ρ (t1 · t2) (t1' · t2')
+ renameLam : ∀{ρ : Renaming}{x x' : V}{t t' : Tm} → 
+              Rename ((x , x') :: ρ) t t' →
+              Rename ρ (ƛ x t) (ƛ x' t')
 
-α _ _ = ⊥
-
-{- single-step α-reduction
-
-   A single α-renaming is allowed anywhere in the first term to reach the second.
-   But this renaming has to preserve β-reductions: any time the first term could
-   β-reduce, the second term can, too, to an α-related result -}
+{- t1 alpha-reduces to t2 iff t1 can be renamed to t2 (with initially empty renaming),
+   and all the bound variables of t2 are distinct.  The latter condition ensures that
+   we do not block β-reductions when we take an ↝α-step -}
 ↝α : Rel Tm
 ↝α t1 t2 =
-
-  t1 ⟨ τ α ⟩ t2 ∧
-
-  -- whenever t1 β-steps, so does t2; and the two resulting terms are related by τ α
-  (∀ (t1' : Tm) →
-      t1 ⟨ ↝β ⟩ t1' →
-      Σ[ t2' ∈ Tm ]
-         t2 ⟨ ↝β ⟩ t2' ∧
-         t1' ⟨ τ α ⟩ t2') 
-
-----------------------------------------------------------------------
--- Theorems about α
-----------------------------------------------------------------------
+  DistinctBVs t2 ∧
+  Rename [] t1 t2
 
 
-{-
-α-symm : R.symmetric α
-α-symm {ƛ x t1} {ƛ y t1'} s = {!!}
-
-↝α-symm : ∀{Γ : Ctxt} → R.symmetric (↝α{Γ})
-↝α-symm = τ-symm α-symm
--}
-{-
-=α-symm : R.symmetric =α
-=α-symm = ⋆symm ↝α-symm
-
-=α-refl : R.reflexive =α
-=α-refl = ⋆refl
-
-=α-trans : R.transitive =α
-=α-trans = _⋆trans_
-
-=α-equiv : R.equivalence =α
-=α-equiv = (=α-refl , =α-trans) , =α-symm
-
--}
+⊥
