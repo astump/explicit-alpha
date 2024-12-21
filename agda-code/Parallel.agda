@@ -15,8 +15,9 @@ open import Ctxt vi
 open import Tm vi
 open import Subst vi
 open import Beta vi
-open import Alpha vi 
+--open import Alpha vi 
 open import Tau vi 
+open import Apart vi
 
 {---------------------------------------------------------------------
  Parallel reduction
@@ -61,8 +62,10 @@ mutual
 ⇒β : Rel Tm
 ⇒β = ⇒ β
 
+{-
 ⇒α : Rel Tm
 ⇒α = ⇒ α
+-}
 
 ----------------------------------------------------------------------
 -- Some easy lemmas about parallel reduction in general
@@ -96,3 +99,43 @@ mutual
  ⇒cτ⋆ ⇒var = ⋆refl
  ⇒cτ⋆ (⇒app d1 d2) = (⋆app1 (⇒τ⋆ d1)) ⋆trans (⋆app2 (⇒τ⋆ d2))
  ⇒cτ⋆ (⇒lam d) = ⋆lam (⇒τ⋆ d)
+
+-- parallel reduction preserves apartness if r does
+preserves-Apart : Rel Tm → Set
+preserves-Apart r = ∀{Γ : Ctxt}{t t' : Tm} →
+                     Apart t Γ →
+                     t ⟨ r ⟩ t' →
+                     Apart t' Γ
+
+mutual 
+ Apart-⇒ : ∀{r : Rel Tm} →
+            preserves-Apart r →
+            preserves-Apart (⇒ r)
+ Apart-⇒ pr a (⇒ctxt x) = Apart-⇒c pr a x
+ Apart-⇒ pr a (⇒base x x₁) = pr (Apart-⇒c pr a x) x₁
+
+ Apart-⇒c : ∀{r : Rel Tm} →
+             preserves-Apart r →
+             preserves-Apart (⇒c r)
+ Apart-⇒c pr A ⇒var = A
+ Apart-⇒c pr A (⇒app x x₁) = Apart· (Apart-⇒ pr (Apart1 A) x) (Apart-⇒ pr (Apart2 A) x₁)
+ Apart-⇒c pr A (⇒lam x) = Apartƛ (Apart-⇒ pr (Apartƛ1 A) x) (Apartƛ2 A)
+
+Apart-Subst : ∀{Γ Γ' : Ctxt}{t t' r : Tm}{x : V} →
+               Apart t Γ →
+               Apart t' Γ →               
+               Subst Γ' t' x t r →
+               Apart r Γ
+Apart-Subst{Γ}{r} A1 A2 (substVarFound A') = A2
+Apart-Subst{Γ}{r} A1 A2 (substVarNot u) = A1
+Apart-Subst{Γ}{r} A1 A2 (substApp s1 s2) = Apart· (Apart-Subst (Apart1 A1) A2 s1) (Apart-Subst (Apart2 A1) A2 s2)
+Apart-Subst{Γ}{r} A1 A2 (substLam s) = Apartƛ (Apart-Subst A2 A2 s) (Apartƛ2 A1)
+
+Apart-β : preserves-Apart β
+Apart-β{Γ}{(ƛ x t) · t'} A s = Apart-Subst (Apartƛ1 (Apart1 A)) (Apart2 A) s
+
+Apart-⇒β : preserves-Apart (⇒ β)
+Apart-⇒β = Apart-⇒ Apart-β
+
+Apart-⇒cβ : preserves-Apart (⇒c β)
+Apart-⇒cβ = Apart-⇒c Apart-β

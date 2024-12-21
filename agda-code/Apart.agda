@@ -7,37 +7,65 @@ open VI vi
 open import Ctxt vi
 open import Tm vi
 
--- Apart t Γ means that no free variable of t is in Γ
-data Apart : Tm → Ctxt → Set where
- apartVar : ∀{Γ : Ctxt}{v : V}
-             (a : v # Γ) →
-             Apart (var v) Γ
- apartApp : ∀{Γ : Ctxt}{t1 t2 : Tm} → 
-             Apart t1 Γ →
-             Apart t2 Γ →              
-             Apart (t1 · t2) Γ
- apartLam : ∀{Γ : Ctxt}{x : V} 
-             {t : Tm} → 
-             Apart t (ctxtDrop x Γ) →
-             Apart (ƛ x t) Γ
-
-
-
-
-
--- x ∉ t means that x does not occur at all (free or bound) in t
+-- x ∉ t means that x does not occur at all (neither free nor bound) in t
 data _∉_ : V → Tm → Set where
- apartVar : ∀{x y : V} → 
+ notinVar : ∀{x y : V} → 
              x ≃ y ≡ ff →
              x ∉ (var y)
- apartApp : ∀{x : V}
+ notinApp : ∀{x : V}
              {t1 t2 : Tm} → 
              x ∉ t1 →
              x ∉ t2 →              
              x ∉ (t1 · t2)
- apartLam : ∀{x y : V} 
+ notinLam1 : ∀{x y : V} 
              {t : Tm} →
              x ≃ y ≡ ff → 
              x ∉ t →
              x ∉ (ƛ y t)
 
+Apart : Tm → Ctxt → Set
+Apart t = all-pred (λ x → x ∉ t)
+
+Apart# : ∀{Γ : Ctxt}{x : V} →
+          Apart (var x) Γ →
+          x # Γ
+Apart# {[]} A = #empty
+Apart# {_ :: _} (notinVar x₁ , b) = #skip (Apart# b) (~≃-sym x₁)
+
+Apartƛ1 : ∀{Γ : Ctxt}{x : V}{t : Tm} → 
+         Apart (ƛ x t) Γ →
+         Apart t Γ
+Apartƛ1 {[]} A = triv
+Apartƛ1 {_ :: _} (notinLam1 x₁ A , A') = A , Apartƛ1 A'
+
+Apartƛ2 : ∀{Γ : Ctxt}{x : V}{t : Tm} → 
+         Apart (ƛ x t) Γ →
+         x # Γ
+Apartƛ2 {[]} A = #empty
+Apartƛ2 {_ :: _} (notinLam1 x A , A') = #skip (Apartƛ2 A') (~≃-sym x)
+
+Apartƛ : ∀{Γ : Ctxt}{x : V}{t : Tm} → 
+         Apart t Γ →
+         x # Γ → 
+         Apart (ƛ x t) Γ 
+Apartƛ {[]} A g = triv
+Apartƛ {_ :: _} (a , A) (#skip g n) = (notinLam1 (~≃-sym n) a) , Apartƛ A g
+
+Apart1 : ∀{Γ : Ctxt}{t1 t2 : Tm} →
+          Apart (t1 · t2) Γ →
+          Apart t1 Γ
+Apart1 {[]} A = triv
+Apart1 {_ :: _} (notinApp A1 A2 , Q) = A1 , Apart1 Q
+
+Apart2 : ∀{Γ : Ctxt}{t1 t2 : Tm} →
+          Apart (t1 · t2) Γ →
+          Apart t2 Γ
+Apart2 {[]} A = triv
+Apart2 {_ :: _} (notinApp A1 A2 , Q) = A2 , Apart2 Q
+
+Apart· : ∀{Γ : Ctxt}{t1 t2 : Tm} →
+          Apart t1 Γ →
+          Apart t2 Γ →           
+          Apart (t1 · t2) Γ
+Apart· {[]} A1 A2 = triv
+Apart· {_ :: _} (a1 , A1) (a2 , A2) = notinApp a1 a2 , Apart· A1 A2

@@ -17,7 +17,6 @@ open import Tau vi
 ↝β : Rel Tm
 ↝β = τ β
 
-{-
-deterministic-β : ∀{Γ : Ctxt} → deterministic (β{Γ})
-deterministic-β{Γ}{(ƛ x t1) · t2} d1 d2  = substDeterministic d1 d2
--}
+
+deterministic-β : deterministic β
+deterministic-β {(ƛ x t1) · t2} d1 d2  = substDeterministic d1 d2

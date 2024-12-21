@@ -19,6 +19,9 @@ record VI : Set₁ where
     fresh-distinct : fresh-distinctness _≃_ fresh
     fresh-extend : fresh-extending _≃_ fresh
 
+  fresh2 : V → V → V
+  fresh2 v v' = fresh (v :: [ v' ])
+
   ≃-refl = fst (fst ≃-equivalence)
   ≃-sym = snd ≃-equivalence
   ≃-trans = snd (fst ≃-equivalence)
