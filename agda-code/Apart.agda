@@ -7,7 +7,7 @@ open VI vi
 open import Ctxt vi
 open import Tm vi
 
--- x ∉ t means that x does not occur at all (neither free nor bound) in t
+-- x ∉ t means that x does not occur free in t
 data _∉_ : V → Tm → Set where
  notinVar : ∀{x y : V} → 
              x ≃ y ≡ ff →
@@ -17,15 +17,20 @@ data _∉_ : V → Tm → Set where
              x ∉ t1 →
              x ∉ t2 →              
              x ∉ (t1 · t2)
- notinLam1 : ∀{x y : V} 
+ notinLamBody : ∀{x y : V} 
              {t : Tm} →
              x ≃ y ≡ ff → 
              x ∉ t →
              x ∉ (ƛ y t)
+ notinLamBound : ∀{x y : V} 
+                {t : Tm} →
+                x ≃ y ≡ tt → 
+                x ∉ (ƛ y t)
 
 Apart : Tm → Ctxt → Set
 Apart t = all-pred (λ x → x ∉ t)
 
+{-
 Apart# : ∀{Γ : Ctxt}{x : V} →
           Apart (var x) Γ →
           x # Γ
@@ -69,3 +74,4 @@ Apart· : ∀{Γ : Ctxt}{t1 t2 : Tm} →
           Apart (t1 · t2) Γ
 Apart· {[]} A1 A2 = triv
 Apart· {_ :: _} (a1 , A1) (a2 , A2) = notinApp a1 a2 , Apart· A1 A2
+-}

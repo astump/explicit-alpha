@@ -22,95 +22,61 @@ renaming-dom = map fst
 renaming-ran : Renaming → 𝕃 V
 renaming-ran = map snd
 
-data Lookup (x : V) : Renaming → V → Set where
-  found : ∀{ρ : Renaming}{y : V} →
-           Lookup x ((x , y) :: ρ) y
-  next :  ∀{ρ : Renaming}{x' y y' : V} →
-           Lookup x ρ y →
-           x ≃ x' ≡ ff → 
-           Lookup x ((x' , y') :: ρ) y
-
-lookup : (x : V) → (ρ : Renaming) → maybe V
-lookup x [] = nothing
-lookup x ((x' , y) :: ρ) =
+lookup : Renaming → V → maybe V
+lookup [] x = nothing
+lookup ((x' , y) :: ρ) x =
   if (x ≃ x') then just y
-  else lookup x ρ 
+  else lookup ρ x 
 
-InDom : V → Renaming → Set
-InDom x ρ = Σ[ y ∈ V ] Lookup x ρ y
+_/_ : Renaming → V → V
+ρ / x with lookup ρ x 
+ρ / x | nothing = x
+ρ / x | just y = y
 
-InRan : V → Renaming → Set
-InRan x ρ = Σ[ y ∈ V ] Lookup y ρ x
+1-1-mapping : V → V → V × V → Set
+1-1-mapping x y (x' , y') = x ≃ x' ≡ tt ∨ (x ≃ x' ≡ ff ∧ y ≃ y' ≡ ff)
 
-InField : V → Renaming → Set
-InField x ρ = InDom x ρ ∨ InRan x ρ
+1-1 : Renaming → V → V → Set
+1-1 ρ x y = all-pred (1-1-mapping x y) ρ
+
+{-
+1-1-tail : ∀{ρ : Renaming}{x y z z' : V} →
+           1-1 ((z , z') :: ρ) x y →
+           1-1 ρ x y
+1-1-tail = {!!}
+
+1-1-[] : ∀{x y : V} → 1-1 [] x y
+1-1-[] = {!!}
+-}
+
+mapping-apart : V → V × V → Set
+mapping-apart x (y , z) = x ≃ z ≡ ff 
+
+-- ρ does not map any variable to x, except it is allowed to map x to x
+range-apart : V → Renaming → Set
+range-apart x = all-pred (mapping-apart x)
 
 {- The Alpha relation ensures we do not identify bound variables, so we cannot
    block β-reductions when we take an Alpha-step -}
 data Alpha : Renaming → Tm → Tm → Set where
- alphaMiss : ∀{ρ : Renaming}{x : V} →
-               -- since the field of ρ is the set of variables bound in either term, we are saying x is not bound in either
-               ¬ InField x ρ →
-               Alpha ρ (var x) (var x)
  alphaHit : ∀{ρ : Renaming}{x y : V} →
-              Lookup x ρ y →
-              Alpha ρ (var x) (var y)
+             (e : lookup ρ x ≡ just y) →  
+             (oo : 1-1 ρ x y) →
+             Alpha ρ (var x) (var y)
+ alphaMiss : ∀{ρ : Renaming}{x : V} →
+             (e : lookup ρ x ≡ nothing) →  
+             (ra : range-apart x ρ) →
+             Alpha ρ (var x) (var x)
  alphaApp : ∀{ρ : Renaming}{t1 t1' t2 t2' : Tm} → 
               Alpha ρ t1 t1' →
               Alpha ρ t2 t2' →
               Alpha ρ (t1 · t2) (t1' · t2')
  alphaLam : ∀{ρ : Renaming}{x x' : V}{t t' : Tm} → 
-              (∀ (y : V) → Lookup y ρ x' → x ≃ y ≡ tt) → -- the only variable that might be mapped to x' by ρ is x, so we cannot map two
-                                                         -- different bound variables to x'.  So renaming can preserve but not increase
-                                                         -- shadowing
-              (x ≃ x' ≡ tt ∨ x' ∉ t) → -- we are either not doing a renaming here, or else we cannot capture a free x' in t
               Alpha ((x , x') :: ρ) t t' →
               Alpha ρ (ƛ x t) (ƛ x' t')
 
-{-
-1-1 : Renaming → Set
-1-1 ρ = ∀{ρ1 ρ2 ρ3 : Renaming}{x x' y y' : V} →
-         ρ ≡ ρ1 ++ (x , y) :: ρ2 ++ (x' , y') :: ρ3 →
-         y ≡ y' →
-         x ≡ x'
-
-1-1-tail : ∀{ρ : Renaming}{y y' : V} →
-           1-1 ((y , y') :: ρ) →
-           1-1 ρ
-1-1-tail{ρ}{z}{z'} oo {ρ1}{ρ2}{ρ3}{x}{y}{y'} eq = oo{ (z , z') :: ρ1}{ρ2}{ρ3} (cong (_::_ (z , z')) eq)
-
-1-1-[] : 1-1 []
-1-1-[]{[]} ()
-1-1-[]{_ :: _} ()
-
--}
-
-1-1 : Renaming → Set
-1-1 ρ = ∀{ρ1 ρ2 : Renaming}{x x' y y' : V} →
-         ρ ≡ ρ1 ++ ρ2 → 
-         Lookup x ρ2 y →
-         Lookup x' ρ2 y' →          
-         y ≃ y' ≡ tt →
-         x ≃ x' ≡ tt 
-
-1-1-tail : ∀{ρ : Renaming}{z z' : V} →
-           1-1 ((z , z') :: ρ) →
-           1-1 ρ
-1-1-tail{ρ}{z}{z'} oo {ρ1}{ρ2}{x}{x'} e1 L L' e2 = oo {(z , z') :: ρ1} {ρ2} (cong (_::_ (z , z')) e1) L L' e2
-
-1-1-[] : 1-1 []
-1-1-[] {[]} {[]} _ ()
-1-1-[] {[]} {x :: ρ2} ()
-1-1-[] {x :: ρ1} {[]} ()
-1-1-[] {x :: ρ1} {x₁ :: ρ2} ()
-
-freshen-var : Renaming → V → V
-freshen-var ρ x with lookup x ρ
-freshen-var ρ x | nothing = x
-freshen-var ρ x | just y = y
-
 freshenh : Renaming → Tm → Tm
-freshenh ρ (var x) = var (freshen-var ρ x) 
+freshenh ρ (var x) = var (ρ / x) 
 freshenh ρ (t1 · t2) = freshenh ρ t1 · freshenh ρ t2 
 freshenh ρ (ƛ x t) =
   let n = fresh (renaming-ran ρ) in
@@ -124,113 +90,110 @@ freshen t = freshenh [] t
 freshen-renaming : 𝔹 → 𝕃 V → Renaming → Renaming
 freshen-renaming _ _ [] = []
 freshen-renaming b ns ((x , y) :: ρ) =
-  let n = fresh ns in
-    ((if b then x else y) , n) :: freshen-renaming b (n :: ns) ρ
+  let ρ' = freshen-renaming b ns ρ in
+  let n = fresh (renaming-ran ρ') in
+    ((if b then x else y) , n) :: ρ'
 
-InDom-freshen-renaming : ∀{ρ : Renaming}{x : V}{ns : 𝕃 V} →
-                          InDom x (freshen-renaming tt ns ρ) →
-                          InDom x ρ
-InDom-freshen-renaming {[]} (_ , ())
-InDom-freshen-renaming {(y , y') :: ρ} (_ , found) = y' , found
-InDom-freshen-renaming {(y , y') :: ρ} (x' , next f x) with InDom-freshen-renaming{ρ} (x' , f) 
-InDom-freshen-renaming {(y , y') :: ρ} (x' , next f x) | c , l = c , next l x
+alphaVar-cons : ∀{ρ : Renaming}{y z' q w : V} →
+                 y ≃ z' ≡ ff →
+                 w ≃ q ≡ ff → 
+                 Alpha ρ (var y) (var w) →
+                 Alpha ((z' , q) :: ρ) (var y) (var w)
+alphaVar-cons{ρ}{y}{z'}{q}{w} e1 e2 (alphaHit e' oo) = alphaHit h (inj₂ (e1 , e2) , oo)
+ where h : if y ≃ z' then just q else lookup ρ y ≡ just w
+       h rewrite e1 = e'
+alphaVar-cons{ρ}{y}{z'}{q}{w} e1 e2 (alphaMiss e' ra) = alphaMiss h (e2 , ra)
+ where h : if y ≃ z' then just q else lookup ρ y ≡ nothing 
+       h rewrite e1 = e'
 
-Lookup-decomp : ∀{x y : V}{ρ : Renaming} →
-                 Lookup x ρ y →
-                 Σ[ ρ1 ∈ Renaming ]
-                 Σ[ ρ2 ∈ Renaming ]
-                 ρ ≡ ρ1 ++ (x , y) :: ρ2
-Lookup-decomp{ρ = (x , y) :: ρ} found = [] , ρ , refl
-Lookup-decomp (next l ne) with Lookup-decomp l 
-Lookup-decomp{ρ = (x' , y') :: ρ} (next l ne) | ρ1 , ρ2 , e rewrite e = (x' , y') :: ρ1 , ρ2 , refl
+lookup-miss : ∀{ρ : Renaming}{x y q : V} → 
+                y ≃ x ≡ ff → 
+                (((x , q) :: ρ) / y) ≡ ρ / y 
+lookup-miss{[]}{x}{y}{q} e rewrite e = refl
+lookup-miss{(w , w') :: ρ}{x}{y}{q} e rewrite e = refl
 
-Lookup-cons-1-1 : ∀{x' x y y' : V}{ρ : Renaming} →
-                   1-1 ((y , y') :: ρ) →
-                   Lookup x' ρ x →
---                   x ≃ y' ≡ ff → 
-                   Lookup x' ((y , y') :: ρ) x
-Lookup-cons-1-1{x'}{x}{y}{y'}{(x' , x) :: ρ} oo found with keep (x' ≃ y)
-Lookup-cons-1-1{x'}{x}{y}{y'}{(x' , x) :: ρ} oo found | tt , p rewrite ≃-≡ p = {!found!}
-Lookup-cons-1-1{x'}{x}{y}{y'}{(x' , x) :: ρ} oo found | ff , p = {!!}
-Lookup-cons-1-1{x'}{x}{y}{y'}{(z , z') :: ρ} oo (next L ne) = {!!}
+1-1-freshen-renaming : ∀{ρ : Renaming}{x y : V}{vs : 𝕃 V} →
+                        list-in y vs →
+                        1-1 (freshen-renaming ff vs ρ) x y
+1-1-freshen-renaming {[]} _ = triv
+1-1-freshen-renaming {(z , z') :: ρ} {x} {y} {vs} I with keep (x ≃ z')
+1-1-freshen-renaming {(z , z') :: ρ} {x} {y} {vs} I | tt , p = inj₁ p , 1-1-freshen-renaming I
+1-1-freshen-renaming {(z , z') :: ρ} {x} {y} {vs} I | ff , p = inj₂ (p , ~≃-sym (fresh-distinct-in {!!})) , 1-1-freshen-renaming I
 
+lookup-fresh : ∀{ρ : Renaming}{x y z : V}{vs : 𝕃 V} →
+               lookup ρ x ≡ just y →
+               list-in z vs → 
+               (freshen-renaming tt vs ρ / x) ≃ z ≡ ff
+lookup-fresh {(w , w') :: ρ} {x} {y} {z} {vs} L I with keep (x ≃ w) 
+lookup-fresh {(w , w') :: ρ} {x} {y} {z} {vs} L I | tt , p rewrite p = fresh-distinct-in {!!}
+lookup-fresh {(w , w') :: ρ} {x} {y} {z} {vs} L I | ff , p rewrite p with lookup-fresh{ρ}{x}{y}{z}{fresh vs :: vs} L (inj₂ I)
+lookup-fresh {(w , w') :: ρ} {x} {y} {z} {vs} L I | ff , p | q = q
 
-Lookup-1-1 : ∀{x y z z' : V}{ρ : Renaming} →
-             1-1 ρ →
-             Lookup x ρ y →
-             Lookup x ((z , z') :: ρ) y →
-             x ≃ z ≡ ff →
-             y ≃ z' ≡ ff
-Lookup-1-1 oo found L' ne = {!!}
-Lookup-1-1 oo (next L x) L' ne = {!!}
+freshen-renamings-ran : ∀{ρ : Renaming}{vs : 𝕃 V} →
+                        renaming-ran (freshen-renaming tt vs ρ) ≡ renaming-ran (freshen-renaming ff vs ρ)
+freshen-renamings-ran = {!!}
 
+alphaVar-renaming : ∀{ρ : Renaming}{x y : V}{vs : 𝕃 V} →
+                    lookup ρ x ≡ just y → 
+                    1-1 ρ x y →
+                    list-in y vs → 
+                    Alpha
+                      (freshen-renaming ff vs ρ)
+                      (var y)
+                      (var (freshen-renaming tt vs ρ / x))
+alphaVar-renaming {(z , z') :: ρ} {x} {y} {vs} e (inj₁ p , oo) I rewrite p with e 
+alphaVar-renaming {(z , z') :: ρ} {x} {y} {vs} e (inj₁ p , oo) I | refl =
+  alphaHit h (inj₁ (≃-refl{z'}) , 1-1-freshen-renaming {ρ}{z'}{fresh (renaming-ran (freshen-renaming tt vs ρ))}{vs} {!!})
+  where h : ∀{b : maybe V} →
+            (if z' ≃ z' then just (fresh (renaming-ran (freshen-renaming ff vs ρ))) else b) ≡
+            just (fresh (renaming-ran (freshen-renaming tt vs ρ)))
+        h rewrite ≃-refl{z'} | freshen-renamings-ran{ρ}{vs} = refl
 
-InDomRan-freshen-renaming : ∀{ρ : Renaming}{x : V}{ns : 𝕃 V} →
-                            1-1 ρ → 
-                            InDom x (freshen-renaming ff ns ρ) → 
-                            InRan x ρ
-InDomRan-freshen-renaming{[]} oo (_ , ())
-InDomRan-freshen-renaming {(y , y') :: ρ} oo (_ , found) = y , found
-InDomRan-freshen-renaming{(y , y') :: ρ}{x} oo (a , next l ne) with InDomRan-freshen-renaming{ρ} (1-1-tail oo) (a , l) 
-InDomRan-freshen-renaming{(y , y') :: ρ}{x} oo (_ , next l ne) | x' , L = x' , {!!} 
+alphaVar-renaming {(z , z') :: ρ} {x} {y} {vs} e (inj₂ (p1 , p2) , oo) I
+ rewrite lookup-miss{freshen-renaming tt (fresh vs :: vs) ρ}{z}{x}{fresh vs} p1 | p1
+ with alphaVar-renaming{ρ}{x}{y}{fresh vs :: vs} e oo (inj₂ I) 
+alphaVar-renaming {(z , z') :: ρ} {x} {y} {vs} e (inj₂ (p1 , p2) , oo) I | q =
+  alphaVar-cons p2 (lookup-fresh{ρ}{vs = fresh vs :: vs} e (inj₁ {!!})) q
 
-InRan-freshen-renaming : ∀{ρ : Renaming}{x : V}{ns : 𝕃 V}{b : 𝔹} →
-                          list-member _≃_ x ns ≡ tt → 
-                          ¬ InRan x (freshen-renaming b ns ρ) 
-InRan-freshen-renaming{[]} _ (_ , ()) 
-InRan-freshen-renaming {(y , y') :: ρ}{x}{ns} m (_ , found) rewrite fresh-distinct{ns} with m 
-InRan-freshen-renaming {(y , y') :: ρ}{x}{ns} m (_ , found) | ()
-InRan-freshen-renaming {(y , y') :: ρ}{x}{ns} m (c , next r ne) = InRan-freshen-renaming {ρ} (||-intro2{x ≃ fresh ns} m) (c , r)
+freshen-lookup-nothing : ∀{ρ : Renaming}{x : V}{vs : 𝕃 V} →
+                          lookup ρ x ≡ nothing →
+                          freshen-renaming tt vs ρ / x ≡ x
+freshen-lookup-nothing {[]} L = refl
+freshen-lookup-nothing {(y , y') :: ρ}{x} L with x ≃ y
+freshen-lookup-nothing {(y , y') :: ρ}{x} L | tt with L
+freshen-lookup-nothing {(y , y') :: ρ}{x} L | tt | ()
+freshen-lookup-nothing {(y , y') :: ρ}{x} L | ff = freshen-lookup-nothing{ρ}{x} L
 
-freshen-diff-var : ∀{x z z' : V}{ρ : Renaming} →
-                    x ≃ z ≡ ff → 
-                    freshen-var ((z , z') :: ρ) x ≡ freshen-var ρ x
-freshen-diff-var{x}{ρ = ρ} ne rewrite ne with lookup x ρ 
-freshen-diff-var ne | nothing = refl
-freshen-diff-var ne | just x' = refl
+freshen-lookup-range-apart : ∀{ρ : Renaming}{x : V}{vs : 𝕃 V} →
+                              range-apart x ρ →
+                              lookup (freshen-renaming ff vs ρ) x ≡ nothing
+freshen-lookup-range-apart {[]} A = refl
+freshen-lookup-range-apart {(y , y') :: ρ} (p , A) rewrite p = freshen-lookup-range-apart A
 
-Lookup-freshen : ∀{x y : V}{ρ : Renaming}{ys : 𝕃 V} →
-                 1-1 ρ → 
-                 Lookup x ρ y →
-                 let ρ' b = freshen-renaming b ys ρ in
-                 Lookup y (ρ' ff) (freshen-var (ρ' tt) x)
-Lookup-freshen {x} {y} {(x , y) :: ρ} _ found rewrite ≃-refl{x} = found
-Lookup-freshen {x} {y} {(z , z') :: ρ}{ys} oo (next L ne) rewrite freshen-diff-var{x}{z}{fresh ys}{freshen-renaming tt (fresh ys :: ys) ρ} ne
-  with Lookup-freshen{x}{y}{ρ}{fresh ys :: ys} (1-1-tail oo) L
-Lookup-freshen {x} {y} {(z , z') :: ρ}{ys} oo (next L ne) | q = next q {!!} --(Lookup-1-1 (1-1-tail oo) L (next L ne) ne)
+range-apart-freshen : ∀{ρ : Renaming}{x : V}{vs : 𝕃 V}{b : 𝔹} →
+                      list-in x vs →
+                      range-apart x (freshen-renaming b vs ρ)
+range-apart-freshen {[]} {x} {vs} {b} I = triv
+range-apart-freshen {(y , y') :: ρ} {x} {vs} {b} I = ~≃-sym (fresh-distinct-in {!!}) , range-apart-freshen (inj₂ I)
 
-{-
-found with keep (x ≃ x) 
-Lookup-freshen{x}{y}{(x , y) :: ρ} found with keep (x ≃ x) 
-Lookup-freshen{x}{y}{(x , y) :: ρ} found | tt , p rewrite ≃-≡ p = found
-Lookup-freshen{x}{y}{(x , y) :: ρ} found | ff , p with ≃-refl{x} 
-Lookup-freshen{x}{y}{(x , y) :: ρ} found | ff , p | q with trans (sym p) q 
-Lookup-freshen{x}{y}{(x , y) :: ρ} found | ff , p | q | ()
-Lookup-freshen{x}{y} (next{x' = x'}{y}{y'} L ne) with keep (x ≃ x') 
-Lookup-freshen{x}{y} (next{x' = x'}{y}{y'} L ne) | tt , p with ≃-≡ p 
-Lookup-freshen{x}{y} (next{x' = x'}{y}{y'} L ne) | tt , p | refl = {!!}
-Lookup-freshen{x}{y} (next{x' = x'}{y}{y'} L ne) | ff , p = {!!}
--}
 triangle-Alphah : ∀{ρ : Renaming} →
-                    1-1 ρ →
-                    {t t' : Tm} → 
+                    {t t' : Tm}{vs : 𝕃 V} →
+                    sublist (fvs t') vs → 
                     Alpha ρ t t' →
-                    let ρ' b = freshen-renaming b (fvs t') ρ in
+                    let ρ' b = freshen-renaming b vs ρ in
                     Alpha (ρ' ff) t' (freshenh (ρ' tt) t)
-triangle-Alphah {ρ} oo (alphaMiss {x = x} i) with lookup x (freshen-renaming tt [ x ] ρ)
-triangle-Alphah {ρ} oo (alphaMiss {x = x} i) | nothing = alphaMiss h
-  where h : ¬ InField x (freshen-renaming ff [ x ] ρ)
-        h (inj₁ p) = i (inj₂ (InDomRan-freshen-renaming oo p))
-        h (inj₂ p) = InRan-freshen-renaming (||-intro1{x ≃ x} (≃-refl{x})) p
-triangle-Alphah {ρ} oo (alphaMiss {x} i) | just y = {!!}
-
-triangle-Alphah {ρ} oo (alphaHit{x = x}{y} L) = alphaHit (Lookup-freshen oo L) 
-triangle-Alphah {ρ} oo (alphaApp a a₁) = alphaApp {!!} {!!}
-triangle-Alphah {ρ} oo (alphaLam x x₁ a) = alphaLam {!!} {!!} {!!}
+triangle-Alphah {ρ} S (alphaHit {x = x}{y} e oo) = alphaVar-renaming e oo (S (inj₁ refl))
+triangle-Alphah {ρ}{vs = vs} S (alphaMiss {x = x} e RA) rewrite freshen-lookup-nothing{ρ}{x}{vs} e =
+  alphaMiss (freshen-lookup-range-apart RA) (range-apart-freshen (S (inj₁ refl))) 
+triangle-Alphah {ρ} S (alphaApp a1 a2) = alphaApp (triangle-Alphah (sublist-++1 S) a1) (triangle-Alphah (sublist-++2 S) a2)
+triangle-Alphah {ρ}{vs = vs} S (alphaLam{x = x}{x'}{t}{t'} a)
+  with triangle-Alphah{(x , x') :: ρ}{t}{t'}{vs} {!!} a
+triangle-Alphah {ρ}{vs = vs} S (alphaLam{x = x}{x'}{t}{t'} a) | B rewrite sym (freshen-renamings-ran{ρ}{vs}) =
+ alphaLam B
 
 
 triangle-Alpha : triangle freshen (Alpha [])
-triangle-Alpha a = triangle-Alphah{[]} 1-1-[] a 
+triangle-Alpha{t}{t'} a = triangle-Alphah{[]}{vs = fvs t'} sublist-refl a
 
 diamond-Alpha : diamond (Alpha [])
 diamond-Alpha = triangle-diamond{f = freshen}{r = Alpha []} triangle-Alpha

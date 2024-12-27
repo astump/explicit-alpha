@@ -43,6 +43,12 @@ record VI : Set₁ where
   ≃-uip{x}{y} p q with x ≃ y 
   ≃-uip{x}{y} refl refl | u = refl
 
+  fresh-distinct-in : ∀{x : V}{vs : 𝕃 V} →
+                       list-in x vs →
+                       fresh vs ≃ x ≡ ff
+  fresh-distinct-in {x}{vs} I with list-in-member{eq = _≃_} (≃-refl{x}) I | fresh-distinct{vs}
+  fresh-distinct-in {x}{vs} I | M | D = ~≃-sym (member-in-out{l = vs} ≃-≡ M D)
+
 ----------------------------------------------------------------------
 -- an implementation of the above interface based on V = ℕ
 
