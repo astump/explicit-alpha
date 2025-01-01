@@ -100,6 +100,7 @@ mutual
  ⇒cτ⋆ (⇒app d1 d2) = (⋆app1 (⇒τ⋆ d1)) ⋆trans (⋆app2 (⇒τ⋆ d2))
  ⇒cτ⋆ (⇒lam d) = ⋆lam (⇒τ⋆ d)
 
+{-
 -- parallel reduction preserves apartness if r does
 preserves-Apart : Rel Tm → Set
 preserves-Apart r = ∀{Γ : Ctxt}{t t' : Tm} →
@@ -139,3 +140,5 @@ Apart-⇒β = Apart-⇒ Apart-β
 
 Apart-⇒cβ : preserves-Apart (⇒c β)
 Apart-⇒cβ = Apart-⇒c Apart-β
+
+-}

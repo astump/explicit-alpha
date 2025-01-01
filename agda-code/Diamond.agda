@@ -10,7 +10,7 @@ open import Ctxt vi
 open import Tm vi
 open import Subst vi
 open import Beta vi
---open import Alpha vi 
+open import Alpha vi 
 open import Parallel vi
 
 {- a generic proof of the diamond property for parallel reduction, assuming that
@@ -47,7 +47,7 @@ mutual
 
 square-β : square β (⇒c β) (⇒ β) β
 square-β (substVarFound A) (⇒app (⇒ctxt (⇒lam (⇒base ⇒var ()))) d2)
-square-β (substVarFound A) (⇒app (⇒ctxt (⇒lam (⇒ctxt ⇒var))) d2) = , d2 , substVarFound (Apart-⇒β A d2)
+square-β (substVarFound A) (⇒app (⇒ctxt (⇒lam (⇒ctxt ⇒var))) d2) = , d2 , substVarFound ({!!} {- Apart-⇒β  A d2-})
 square-β (substVarFound A) (⇒app (⇒base (⇒lam (⇒base ⇒var ())) d1') d2)
 square-β (substVarNot ne) (⇒app (⇒ctxt (⇒lam (⇒base ⇒var ()))) d2) 
 square-β (substVarNot ne) (⇒app (⇒ctxt (⇒lam (⇒ctxt ⇒var))) d2) = , ⇒ctxt ⇒var , substVarNot ne
@@ -60,3 +60,8 @@ diamond-⇒β = diamond-⇒{β} square-β λ{x : Tm} → deterministic-β{x}
 
 confluent-↝β : confluent ↝β
 confluent-↝β = mediator-diamond τ⇒ ⇒τ⋆ diamond-⇒β
+
+commute-parallel : ∀{ρ : Renaming} →
+                    commute (⇒ β) (Alpha ρ)
+commute-parallel {ρ} {t} {t1} {t2} (⇒ctxt x) d2 = {!!}
+commute-parallel {ρ} {t} {t1} {t2} (⇒base x x₁) d2 = {!!}
