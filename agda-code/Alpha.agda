@@ -48,29 +48,29 @@ range-apart : V → Renaming → Set
 range-apart x = all-pred (mapping-apart x)
 
 
-{- proposal:
-
-   - move oo argument from alphaHit to alphaLam
-   - maybe add constraint to alphaLam that x' is not free in t, and drop the range-apart constraint from alphaMiss?
-
--}
-
 {- The Alpha relation ensures we do not identify bound variables, so we cannot
    block β-reductions when we take an Alpha-step -}
 data Alpha : Renaming → Tm → Tm → Set where
  alphaHit : ∀{ρ : Renaming}{x y : V} →
              (e : lookup ρ x ≡ just y) →  
-             (oo : 1-1 ρ x y) →
              Alpha ρ (var x) (var y)
  alphaMiss : ∀{ρ : Renaming}{x : V} →
              (e : lookup ρ x ≡ nothing) →  
-             (ra : range-apart x ρ) →
              Alpha ρ (var x) (var x)
  alphaApp : ∀{ρ : Renaming}{t1 t1' t2 t2' : Tm} → 
               Alpha ρ t1 t1' →
               Alpha ρ t2 t2' →
               Alpha ρ (t1 · t2) (t1' · t2')
  alphaLam : ∀{ρ : Renaming}{x x' : V}{t t' : Tm} → 
+
+              -- we should not map a variable different from x to x'
+              (oo : 1-1 ρ x x') →
+
+              -- if this is a nontrivial renaming, and if the variable x' we are mapping to
+              -- is not itself mapped by ρ, then x' should not be free in t (otherwise we would
+              -- capture that occurrence when we rename x to x')
+              (fr : x ≃ x' ≡ ff → (ρ / x') ≃ x' ≡ tt → list-member _≃_ x' (fvs t) ≡ ff) →
+
               Alpha ((x , x') :: ρ) t t' →
               Alpha ρ (ƛ x t) (ƛ x' t')
 
@@ -191,25 +191,81 @@ sublist-fvs-ƛ : ∀{x : V}{t : Tm}{vs : 𝕃 V} →
                 sublist (fvs t) (x :: vs)
 sublist-fvs-ƛ = sublist-remove ≃-≡ ≃-refl
 
+list-in-lookup : ∀{x y : V}{ρ : Renaming} →
+                  lookup ρ x ≡ just y →
+                  list-in y (renaming-ran ρ)
+list-in-lookup{x}{ρ = (z , z') :: ρ} L with keep (x ≃ z)
+list-in-lookup{x}{ρ = (z , z') :: ρ} L | tt , p rewrite p with L 
+list-in-lookup{x}{ρ = (z , z') :: ρ} L | tt , p | refl = inj₁ refl
+list-in-lookup{x}{ρ = (z , z') :: ρ} L | ff , p rewrite p = inj₂ (list-in-lookup L)
+
+mutual 
+ Alpha-preserve-free : ∀{t t' : Tm}{ρ : Renaming}{y : V} →
+                       Alpha ρ t t' →
+                       list-in y (fvs t) →
+                       list-in y (fvs t') →
+                       ¬ (list-in y (renaming-ran ρ)) →
+                       ¬ (list-in y (renaming-dom ρ))
+ Alpha-preserve-free (alphaHit e) it it' nir = {!!}
+ Alpha-preserve-free (alphaMiss e) it it' nir = {!!}
+ Alpha-preserve-free (alphaApp{t1 = t1}{t1'}{t2}{t2'} a a₁) it it' nir
+   with list-in-++{l1 = fvs t1'}{fvs t2'} it'
+ Alpha-preserve-free (alphaApp{t1 = t1}{t1'}{t2}{t2'} a a₁) it it' nir | inj₁ q = {!!}
+ Alpha-preserve-free (alphaApp{t1 = t1}{t1'}{t2}{t2'} a a₁) it it' nir | inj₂ q = {!!} 
+ Alpha-preserve-free{ρ = ρ}{y}(alphaLam{x = x}{x' = x'}{t = t}{t'} oo fr a) it it' nir id =
+  Alpha-preserve-free a (list-in-remove3 ≃-≡ it)(list-in-remove3 ≃-≡ it') h (inj₂ id)
+  where h : ¬ (y ≡ x' ∨ list-in y (map snd ρ))
+        h u with (list-in-remove2{eq = _≃_}{x = y}{y = x'}{fvs t'} it') 
+        h (inj₁ refl) | r rewrite ≃-refl{y} with r
+        h (inj₁ refl) | r | ()
+        h (inj₂ q) | r = nir q
+
+
+ Alpha-sublist-fvs : ∀{t t' : Tm}{ρ : Renaming} →
+                      Alpha ρ t t' →
+                      sublist (fvs t') (renaming-ran ρ ++ fvs t)
+ Alpha-sublist-fvs{var x}{var y} (alphaHit e) (inj₁ refl) = list-in-++1{l2 = [ x ]} (list-in-lookup e)
+ Alpha-sublist-fvs{ρ = ρ} (alphaMiss e) (inj₁ refl) = list-in-++2{l1 = renaming-ran ρ} (inj₁ refl)
+ Alpha-sublist-fvs{t1 · t2}{t1' · t2'}{ρ} (alphaApp a a₁) L with list-in-++{l1 = fvs t1'} L
+ Alpha-sublist-fvs{t1 · t2}{t1' · t2'}{ρ} (alphaApp a a₁) L | inj₁ L1 with list-in-++{l1 = renaming-ran ρ} (Alpha-sublist-fvs{t1}{t1'}{ρ} a L1) 
+ Alpha-sublist-fvs{t1 · t2}{t1' · t2'}{ρ} (alphaApp a a₁) L | inj₁ L1 | inj₁ q = list-in-++1 q
+ Alpha-sublist-fvs{t1 · t2}{t1' · t2'}{ρ} (alphaApp a a₁) L | inj₁ L1 | inj₂ q = 
+  list-in-++2 {l1 = renaming-ran ρ} (list-in-++1 {l2 = fvs t2} q)
+ Alpha-sublist-fvs{t1 · t2}{t1' · t2'}{ρ} (alphaApp a a₁) L | inj₂ L2 with list-in-++{l1 = renaming-ran ρ} (Alpha-sublist-fvs{t2}{t2'}{ρ} a₁ L2) 
+ Alpha-sublist-fvs{t1 · t2}{t1' · t2'}{ρ} (alphaApp a a₁) L | inj₂ L2 | inj₁ q = list-in-++1 q
+ Alpha-sublist-fvs{t1 · t2}{t1' · t2'}{ρ} (alphaApp a a₁) L | inj₂ L2 | inj₂ q =
+  list-in-++2{l1 = renaming-ran ρ} (list-in-++2{l1 = fvs t1} q)
+ Alpha-sublist-fvs (alphaLam oo fr a) L with Alpha-sublist-fvs a (list-in-remove3 ≃-≡ L) 
+ Alpha-sublist-fvs (alphaLam{x' = x'}{t' = t'} oo fr a) L | inj₁ refl
+  with list-in-remove2{eq = _≃_}{y = x'}{fvs t'} L 
+ Alpha-sublist-fvs (alphaLam{x' = x'} oo fr a) L | inj₁ refl | q rewrite ≃-refl{x'} with q 
+ Alpha-sublist-fvs (alphaLam oo fr a) L | inj₁ refl | q | ()
+ Alpha-sublist-fvs{ρ = ρ} (alphaLam{x = x}{x'} oo fr a) {y} L | inj₂ p with list-in-++{l1 = renaming-ran ρ} p
+ Alpha-sublist-fvs (alphaLam{x = x}{x'} oo fr a) {y} L | inj₂ p | inj₁ q = list-in-++1 q
+ Alpha-sublist-fvs{ρ = ρ} (alphaLam{x = x}{x'}{t = t} oo fr a) {y} L | inj₂ p | inj₂ q =
+  list-in-++2{l1 = renaming-ran ρ}{l2 = remove _≃_ x (fvs t)} {!!}
+
 -- vs should be the free variables of t' not mapped by ρ
 triangle-Alphah : ∀{ρ : Renaming} →
                     {t t' : Tm}{vs : 𝕃 V} →
-                    sublist (fvs t) (renaming-dom ρ ++ vs) → 
+                    sublist (fvs t') (renaming-ran ρ ++ vs) → 
                     Alpha ρ t t' →
                     let ρ' b = freshen-renaming b vs ρ in
                     Alpha (ρ' ff) t' (freshenh vs (ρ' tt) t)
-triangle-Alphah {ρ} S (alphaHit {x = x}{y} e oo) = {!!} --alphaVar-renaming e oo (S (inj₁ refl))
-triangle-Alphah {ρ}{vs = vs} S (alphaMiss {x = x} e RA) = {!!} {-rewrite freshen-lookup-nothing{ρ}{x}{vs} e =
+triangle-Alphah {ρ} S (alphaHit {x = x}{y} e) = {!!} --alphaVar-renaming e oo (S (inj₁ refl))
+triangle-Alphah {ρ}{vs = vs} S (alphaMiss {x = x} e) = {!!} {-rewrite freshen-lookup-nothing{ρ}{x}{vs} e =
   alphaMiss (freshen-lookup-range-apart RA) (range-apart-freshen (S (inj₁ refl)))  -}
 triangle-Alphah {ρ} S (alphaApp a1 a2) = alphaApp (triangle-Alphah (sublist-++1 S) a1) (triangle-Alphah (sublist-++2 S) a2)
-triangle-Alphah {ρ}{vs = vs} S (alphaLam{x = x}{x'}{t}{t'} a)
-  with triangle-Alphah{(x , x') :: ρ}{t}{t'}{vs} (sublist-fvs-ƛ{x}{t} S) a 
-triangle-Alphah {ρ}{vs = vs} S (alphaLam{x = x}{x'}{t}{t'} a) | B rewrite freshen-renamings-ran{ρ}{vs} = 
- alphaLam B 
+triangle-Alphah {ρ}{vs = vs} S (alphaLam{x = x}{x'}{t}{t'} oo nf a)
+  with triangle-Alphah{(x , x') :: ρ}{t}{t'}{vs} ((sublist-fvs-ƛ{x'}{t'} S)) a 
+triangle-Alphah {ρ}{vs = vs} S (alphaLam{x = x}{x'}{t}{t'} oo nf a) | B rewrite freshen-renamings-ran{ρ}{vs}
+  with keep (fresh (renaming-ran (freshen-renaming tt vs ρ) ++ vs)) 
+triangle-Alphah {ρ}{vs = vs} S (alphaLam{x = x}{x'}{t}{t'} oo nf a) | B | n , eq rewrite eq =
+ alphaLam {!!} (λ p r → {!!}) B 
 
 
 triangle-Alpha : triangle freshen (Alpha [])
-triangle-Alpha{t}{t'} a = triangle-Alphah{[]}{vs = fvs t} sublist-refl a 
+triangle-Alpha{t}{t'} a = triangle-Alphah{[]}{vs = fvs t} (Alpha-sublist-fvs a) a 
 
 diamond-Alpha : diamond (Alpha [])
 diamond-Alpha = triangle-diamond{f = freshen}{r = Alpha []} triangle-Alpha
