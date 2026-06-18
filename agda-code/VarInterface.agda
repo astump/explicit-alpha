@@ -52,11 +52,11 @@ record VI : Set₁ where
 ----------------------------------------------------------------------
 -- an implementation of the above interface based on V = ℕ
 
-suc+ : ℕ → ℕ → ℕ
-suc+ x y = suc (x + y)
+s+ : ℕ → ℕ → ℕ
+s+ x y = suc (x + y)
 
 fresh-ℕ : 𝕃 ℕ → ℕ
-fresh-ℕ l = (foldr suc+ 0 l)
+fresh-ℕ l = (foldr s+ 0 l)
 
 fresh-ℕ-step : ∀{x : ℕ}{l1 l2 : 𝕃 ℕ} → x < fresh-ℕ (l1 ++ x :: l2) ≡ tt
 fresh-ℕ-step {x} {[]}{l2} = <+3{x}{suc x}{fresh-ℕ l2} (<-suc x)
