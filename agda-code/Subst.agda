@@ -1,12 +1,11 @@
 open import lib
 open import VarInterface
 
-module Subst(vi : VI) where
+module Subst where
 
-open VI vi
-open import Tm vi
-open import Ctxt vi
-open import Apart vi
+open import Tm 
+open import Ctxt
+open import Apart
 
 data Subst : Ctxt → Tm → V → Tm → Tm → Set where
   substVarFound : ∀{Γ : Ctxt}{t : Tm}{v : V} → 
@@ -40,3 +39,4 @@ substDeterministic (substVarNot a) (substVarFound x) | ()
 substDeterministic (substVarNot a) (substVarNot a₁) = refl
 substDeterministic (substApp s1 s2) (substApp s1' s2') rewrite substDeterministic s1 s1' | substDeterministic s2 s2' = refl
 substDeterministic (substLam s) (substLam s') rewrite substDeterministic s s' = refl
+

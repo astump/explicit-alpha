@@ -1,9 +1,7 @@
 open import lib
 open import VarInterface
 
-module Ctxt(vi : VI) where
-
-open VI vi
+module Ctxt where
 
 Ctxt : Set
 Ctxt = 𝕃 V

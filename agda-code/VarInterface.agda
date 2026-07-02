@@ -91,3 +91,4 @@ VI-ℕ = record {
         fresh-extend = λ{x}{l1}{l2} → fresh-ℕ-extend{x}{l1}{l2}
         }
 
+open VI VI-ℕ public

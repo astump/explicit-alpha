@@ -1,11 +1,10 @@
 open import lib
 open import VarInterface
 
-module Apart(vi : VI) where
+module Apart where
 
-open VI vi
-open import Ctxt vi
-open import Tm vi
+open import Ctxt 
+open import Tm 
 
 -- x ∉ t means that x does not occur free in t
 data _∉_ : V → Tm → Set where

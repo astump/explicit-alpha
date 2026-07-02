@@ -1,9 +1,7 @@
 open import lib
 open import VarInterface
 
-module Tm(vi : VI) where
-
-open VI vi
+module Tm where
 
 data Tm : Set where
   var : V → Tm 
@@ -22,4 +20,9 @@ freshFor v (ƛ x t) = freshFor (fresh2 v x) t
 fvs : Tm → 𝕃 V
 fvs (var x) = [ x ]
 fvs (t1 · t2) = fvs t1 ++ fvs t2
-fvs (ƛ x t) = remove _≃_ x (fvs t) 
+fvs (ƛ x t) = remove _≃_ x (fvs t)
+
+vars : Tm → 𝕃 V
+vars (var x) = [ x ]
+vars (t · t₁) = vars t ++ vars t₁
+vars (ƛ x t) = x :: vars t

@@ -2,11 +2,10 @@ open import lib
 open import relations 
 open import VarInterface
 
-module Tau(vi : VI) where
+module Tau where
 
-open VI vi
-open import Ctxt vi
-open import Tm vi
+open import Ctxt 
+open import Tm 
 
 data τ(r : Rel Tm) : Rel Tm where
  τ-base : ∀{t1 t2 : Tm} → t1 ⟨ r ⟩ t2 → t1 ⟨ τ r ⟩ t2
