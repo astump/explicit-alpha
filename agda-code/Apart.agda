@@ -6,6 +6,8 @@ module Apart where
 open import Ctxt 
 open import Tm 
 
+infix 5 _∉_
+
 -- x ∉ t means that x does not occur free in t
 data _∉_ : V → Tm → Set where
  notinVar : ∀{x y : V} → 

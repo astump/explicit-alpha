@@ -8,8 +8,8 @@ data Tm : Set where
   _·_ : (t1 t2 : Tm) → Tm 
   ƛ : (x : V) → (t : Tm) → Tm 
 
-infixl 10 _·_ 
-infixl 9 ƛ
+infixl 9 _·_ 
+infixl 8 ƛ
 
 -- generate a variable different from all others in the given Tm, as well as the given one
 freshFor : V → Tm → V

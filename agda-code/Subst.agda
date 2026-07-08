@@ -6,24 +6,33 @@ module Subst where
 open import Tm 
 open import Ctxt
 open import Apart
+open import Substitution
 
-data Subst : Ctxt → Tm → V → Tm → Tm → Set where
-  substVarFound : ∀{Γ : Ctxt}{t : Tm}{v : V} → 
+data Subst : Ctxt → Substitution → Tm → Tm → Set where
+  var-found : ∀{Γ : Ctxt}{σ : Substitution}{v : V}{t : Tm} → 
+                  lookup σ v ≡ just t → 
                   Apart t Γ → 
-                  Subst Γ t v (var v) t
-  substVarNot : ∀{Γ : Ctxt}{t : Tm}{v v' : V}
-                 (a : v ≃ v' ≡ ff) → 
-                 Subst Γ t v (var v') (var v')
-  substApp : ∀{Γ : Ctxt}{t : Tm}{v : V}
+                  Subst Γ σ (var v) t
+  var-not : ∀{Γ : Ctxt}{σ : Substitution}{v : V} → 
+                  lookup σ v ≡ nothing → 
+                  Subst Γ σ (var v) (var v)
+  app : ∀{Γ : Ctxt}{σ : Substitution}
               {t1 t2 t1' t2' : Tm} → 
-              Subst Γ t v t1 t1' →
-              Subst Γ t v t2 t2' →
-              Subst Γ t v (t1 · t2) (t1' · t2')
-  substLam : ∀{Γ : Ctxt}{t : Tm}{v x : V}
+              Subst Γ σ t1 t1' →
+              Subst Γ σ t2 t2' →
+              Subst Γ σ (t1 · t2) (t1' · t2')
+  lam : ∀{Γ : Ctxt}{σ : Substitution}{x : V}
               {t t' : Tm} → 
-              Subst (x :: Γ) t v t t' →
-              Subst Γ t v (ƛ x t) (ƛ x t')
+              Subst (x :: Γ) σ t t' →
+              Subst Γ σ (ƛ x t) (ƛ x t')
 
+Subst-refl : ∀{Γ : Ctxt}{t : Tm} →
+             Subst Γ [] t t
+Subst-refl {Γ} {var x} = var-not refl
+Subst-refl {Γ} {t · t₁} = app Subst-refl Subst-refl
+Subst-refl {Γ} {ƛ x t} = lam Subst-refl
+
+{-
 substDeterministic : ∀{Γ : Ctxt}
                       {t1 : Tm}
                       {v : V}
@@ -40,3 +49,4 @@ substDeterministic (substVarNot a) (substVarNot a₁) = refl
 substDeterministic (substApp s1 s2) (substApp s1' s2') rewrite substDeterministic s1 s1' | substDeterministic s2 s2' = refl
 substDeterministic (substLam s) (substLam s') rewrite substDeterministic s s' = refl
 
+-}
