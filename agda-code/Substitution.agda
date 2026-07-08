@@ -32,10 +32,10 @@ graft σ (var x) = subst-var σ x
 graft σ (t1 · t2) = graft σ t1 · graft σ t2
 graft σ (ƛ x t) = ƛ x (graft σ t)
 
-infix 5 _∉subst_
+infix 5 _∉ran_
 
-_∉subst_ : V → Substitution → Set
-v ∉subst σ = all-pred (λ p → v ∉ (snd p)) σ
+_∉ran_ : V → Substitution → Set
+v ∉ran σ = all-pred (λ p → v ∉ (snd p)) σ
 
 subst-Apart : Substitution → Ctxt → Set
 subst-Apart σ Γ = all-pred (λ p → Apart (snd p) Γ) σ

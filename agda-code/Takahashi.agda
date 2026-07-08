@@ -76,9 +76,10 @@ mutual
       r ← (αtk t)
       return (ƛ q r))
 
-
+{-
 αtk-permute-redex : ∀{v : V}{s1 s2 : Tm}{σ1 σ : Substitution}{Γ : Ctxt} →
                     αtk (redexes ((v , s1) :: σ1) s2) Γ σ ≡ αtk (redexes (σ1 ++ [ v , s1 ]) s2) Γ σ
 αtk-permute-redex {v} {s1} {s2} {[]} {σ} {Γ} = refl
 αtk-permute-redex {v} {s1} {s2} {(v' , t) :: σ1} {σ} {Γ} with keep (αtk s1 Γ σ)
 αtk-permute-redex {v} {s1} {s2} {(v' , t) :: σ1} {σ} {Γ} | r , eq rewrite eq = {!!}
+-}

@@ -8,37 +8,32 @@ open import Ctxt
 open import Apart
 open import Substitution
 
-data Subst : Ctxt → Substitution → Tm → Tm → Set where
-  var-found : ∀{Γ : Ctxt}{σ : Substitution}{v : V}{t : Tm} → 
-                  lookup σ v ≡ just t → 
-                  Apart t Γ → 
-                  Subst Γ σ (var v) t
-  var-not : ∀{Γ : Ctxt}{σ : Substitution}{v : V} → 
-                  lookup σ v ≡ nothing → 
-                  Subst Γ σ (var v) (var v)
-  app : ∀{Γ : Ctxt}{σ : Substitution}
-              {t1 t2 t1' t2' : Tm} → 
-              Subst Γ σ t1 t1' →
-              Subst Γ σ t2 t2' →
-              Subst Γ σ (t1 · t2) (t1' · t2')
-  lam : ∀{Γ : Ctxt}{σ : Substitution}{x : V}
-              {t t' : Tm} → 
-              Subst (x :: Γ) σ t t' →
-              Subst Γ σ (ƛ x t) (ƛ x t')
+data Subst : Substitution → Tm → Tm → Set where
+  var : ∀{σ : Substitution}{v : V} → 
+           Subst σ (var v) (subst-var σ v)
+  app : ∀{σ : Substitution}
+         {t1 t2 t1' t2' : Tm} → 
+         Subst σ t1 t1' →
+         Subst σ t2 t2' →
+         Subst σ (t1 · t2) (t1' · t2')
+  lam : ∀{σ : Substitution}{x : V}{t t' : Tm} →
+         x ∉ran σ → 
+         Subst σ t t' →
+         Subst σ (ƛ x t) (ƛ x t')
 
-Subst-refl : ∀{Γ : Ctxt}{t : Tm} →
-             Subst Γ [] t t
-Subst-refl {Γ} {var x} = var-not refl
-Subst-refl {Γ} {t · t₁} = app Subst-refl Subst-refl
-Subst-refl {Γ} {ƛ x t} = lam Subst-refl
+Subst-refl : ∀{t : Tm} →
+             Subst [] t t
+Subst-refl {var x} = var 
+Subst-refl {t · t₁} = app Subst-refl Subst-refl
+Subst-refl {ƛ x t} = lam triv Subst-refl
 
 {-
-substDeterministic : ∀{Γ : Ctxt}
+substDeterministic : ∀
                       {t1 : Tm}
                       {v : V}
                       {t2 r1 r2 : Tm} → 
-                      Subst Γ t1 v t2 r1 →
-                      Subst Γ t1 v t2 r2 →
+                      Subst t1 v t2 r1 →
+                      Subst t1 v t2 r2 →
                       r1 ≡ r2
 substDeterministic (substVarFound x) (substVarFound x₁) = refl
 substDeterministic{v = v} (substVarFound x) (substVarNot a) rewrite ≃-refl {v} with a
