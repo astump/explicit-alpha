@@ -26,3 +26,10 @@ vars : Tm → 𝕃 V
 vars (var x) = [ x ]
 vars (t · t₁) = vars t ++ vars t₁
 vars (ƛ x t) = x :: vars t
+
+infix 8 _∈_
+
+_∈_ : V → Tm → 𝔹
+x ∈ var y = x ≃ y 
+x ∈ t1 · t2 = x ∈ t1 || x ∈ t2 
+x ∈ ƛ y t = ~ x ≃ y && x ∈ t
