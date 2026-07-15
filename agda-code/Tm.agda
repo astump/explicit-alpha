@@ -29,7 +29,17 @@ vars (ƛ x t) = x :: vars t
 
 infix 8 _∈_
 
+-- x ∈ t means x occurs free in t
 _∈_ : V → Tm → 𝔹
 x ∈ var y = x ≃ y 
 x ∈ t1 · t2 = x ∈ t1 || x ∈ t2 
 x ∈ ƛ y t = ~ x ≃ y && x ∈ t
+
+Apart : Tm → 𝕃 V → 𝔹
+Apart t vs = list-all (λ v → ~ v ∈ t) vs
+
+bvs : Tm → 𝕃 V
+bvs (var x) = []
+bvs (t · t₁) = bvs t ++ bvs t₁ 
+bvs (ƛ x t) = x :: bvs t
+

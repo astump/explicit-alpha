@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 open import lib
 open import VarInterface
 
@@ -56,3 +57,38 @@ var-∉-Subst {y} {t1} {t2} {r} e (var-not x) = x
 var-∉-Subst {y} {t1} {ta · tb} {ta' · tb'} e (app s s₁) rewrite var-∉-Subst e s | var-∉-Subst e s₁ = refl
 var-∉-Subst {y} {t1} {ƛ a s} {ƛ a s'} e (lam-go x x₁ u) rewrite var-∉-Subst e u | &&-ff (~ y =ℕ a) = refl
 var-∉-Subst {y} {t1} {t2} {r} e (lam-stop x) = x
+
+Subst-refl : ∀{t1 : Tm}{x : V}{t2 r : Tm} →
+             Subst t1 x t2 r →
+             x ∈ t2 ≡ ff →
+             t2 ≡ r
+Subst-refl {t1} {x} {t2} {r} var-found e rewrite =ℕ-refl x with e
+Subst-refl {t1} {x} {t2} {r} var-found e | ()
+Subst-refl {t1} {x} {t2} {r} (var-not x₁) e = refl
+Subst-refl {t1} {x} {ta · tb} {ta' · tb'} (app s s₁) e with ||-ff-elim{x ∈ ta} e 
+Subst-refl {t1} {x} {ta · tb} {ta' · tb'} (app s s₁) e | p1 , p2 rewrite Subst-refl s p1 | Subst-refl s₁ p2  = refl
+Subst-refl {t1} {x} {ƛ y t2} {ƛ y r} (lam-go x₁ x₂ s) e rewrite e with x₁ 
+Subst-refl {t1} {x} {ƛ y t2} {ƛ y r} (lam-go x₁ x₂ s) e | ()
+Subst-refl {t1} {x} {t2} {r} (lam-stop x₁) e = refl
+
+
+Rename-subst : ∀{y' y : V}{t1 r1 j : Tm}{z : V}{r2 : Tm} →
+                Subst (var y') y t1 r1 →
+                Subst j z t1 r2 →
+                ∃ Tm (λ w → Subst (var y') y r2 w ∧ Subst j z r1 w)
+Rename-subst = {!!}
+
+Apart-rename : ∀{s t r : Tm}{y y' : V} →
+               Apart s (bvs r) ≡ tt →
+               Subst (var y') y t r → 
+               Apart s (bvs t) ≡ tt 
+Apart-rename {s} {t} {r} {y} {y'} apart var-found = refl
+Apart-rename {s} {t} {r} {y} {y'} apart (var-not x) = refl
+Apart-rename {s} {t1 · t2} {t1' · t2'} {y} {y'} apart (app su su₁) rewrite list-all-append (λ v → ~ v ∈ s) (bvs t1) (bvs t2) |
+  list-all-append (λ v → ~ v ∈ s) (bvs t1') (bvs t2') with &&-elim{Apart s (bvs t1')} apart | ||-ff-elim{y' ∈ t1'}
+Apart-rename {s} {t1 · t2} {t1' · t2'} {y} {y'} apart (app su su₁) | apart1 , apart2 | , 
+  rewrite Apart-rename{s} apart1 su |  Apart-rename{s} apart2 su₁ =  refl
+Apart-rename {s} {ƛ z t} {ƛ z r} {y} {y'} apart (lam-go x x₁ su) with &&-elim {~ z ∈ s} apart
+Apart-rename {s} {ƛ z t} {ƛ z r} {y} {y'} apart (lam-go x x₁ su) | p1 , p2 rewrite p1 | =ℕ-sym y' z | x₁ = Apart-rename{s} p2 su
+Apart-rename {s} {ƛ z t} {ƛ z t} {y} {y'} apart (lam-stop x) = apart
+
