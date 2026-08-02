@@ -74,7 +74,9 @@ Subst-refl {t1} {x} {t2} {r} (lam-stop x₁) e = refl
 
 Rename-subst : ∀{y' y : V}{t1 r1 j : Tm}{z : V}{r2 : Tm} →
                 Subst (var y') y t1 r1 →
+--                y' ∈ t1 ≡ ff → 
                 Subst j z t1 r2 →
+--                y' ∈ j ≡ ff → 
                 ∃ Tm (λ w → Subst (var y') y r2 w ∧ Subst j z r1 w)
 Rename-subst = {!!}
 
