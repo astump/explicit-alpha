@@ -61,6 +61,13 @@ data ⇒αβ : Tm → Tm → Set where
 ∉-⇒αβ {x} {ƛ y s} {ƛ y t} e (lam x₁) | inj₁ i rewrite i = refl
 ∉-⇒αβ {x} {ƛ y s} {ƛ y t} e (lam x₁) | inj₂ i rewrite ∉-⇒αβ i x₁ | &&-ff (~ x =ℕ y) = refl
 
+graft⇒αβ : ∀{t1 t2 t1' t2' : Tm}{x : V} → 
+  varDiff t1 (fvs t2) ≡ tt →
+  t1 ⟨ ⇒αβ ⟩ t1' →
+  t2 ⟨ ⇒αβ ⟩ t2' →
+  graft1 t2 x t1 ⟨ ⇒αβ ⟩ graft1 t2' x t1'
+graft⇒αβ = {!!}
+{-
 subst-αtk :
   ∀{t1 t2 t1' t2' s1 s2 t : Tm}{x : V}{vs : 𝕃 V}{σ : Substitution} → 
   t1 ⟨ ⇒αβ ⟩ t1' →
@@ -89,3 +96,5 @@ triangle-⇒αβ {(ƛ x s2) · s1} {t}{vs} (beta x1 x2 u) =
     {!!}
 triangle-⇒αβ {s} {t}{vs} (alpha fr ne x2 u) = {!!}
 triangle-⇒αβ {s} {t}{vs} (lam x) = {!!}
+
+-}
