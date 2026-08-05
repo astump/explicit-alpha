@@ -12,19 +12,21 @@ module Takahashi where
 open import Tm 
 open import Substitution
 
-tk : Tm → Tm
-tk (var x) = var x
-tk (var x · t) = var x · tk t
-tk ((t1 · t2) · t3) = (tk (t1 · t2)) · tk t3
-tk ((ƛ x t1) · t2) = graft1 (tk t2) x (tk t1)
-tk (ƛ x t) = ƛ x (tk t)
-
 αc : Tm → 𝕃 V → Tm
 αc (var x) _ = var x
 αc (t1 · t2) vs = αc t1 vs · αc t2 vs
 αc (ƛ x t) vs =
   let n = fresh vs in
     ƛ n (graft1 (var n) x (αc t (n :: vs)))
+
+
+
+tk : Tm → Tm
+tk (var x) = var x
+tk (var x · t) = var x · tk t
+tk ((t1 · t2) · t3) = (tk (t1 · t2)) · tk t3
+tk ((ƛ x t1) · t2) = graft1 (tk t2) x (tk t1)
+tk (ƛ x t) = ƛ x (tk t)
 
 varDiff : Tm → 𝕃 V → 𝔹
 varDiff (var x) vs = list-member _≃_ x vs
