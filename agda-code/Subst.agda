@@ -26,14 +26,6 @@ data Subst : Tm → V → Tm → Tm → Set where
              v ∈ (ƛ x s) ≡ ff →
              Subst t v (ƛ x s) (ƛ x s)
 
-
-{-
-Subst-removed : ∀ {x y : V}{t1 t2 r : Tm} →
-                Subst (var x) y t1 t2 →
-                Subst r y t2 t2
-Subst-removed = {!!}
--}
-
 ∉-Subst : ∀{x y : V}{t1 t2 r : Tm} →
           x ∈ t1 ≡ ff →
           x ∈ t2 ≡ ff →
@@ -72,14 +64,6 @@ Subst-refl {t1} {x} {ƛ y t2} {ƛ y r} (lam-go x₁ x₂ s) e | ()
 Subst-refl {t1} {x} {t2} {r} (lam-stop x₁) e = refl
 
 
-Rename-subst : ∀{y' y : V}{t1 r1 j : Tm}{z : V}{r2 : Tm} →
-                Subst (var y') y t1 r1 →
---                y' ∈ t1 ≡ ff → 
-                Subst j z t1 r2 →
---                y' ∈ j ≡ ff → 
-                ∃ Tm (λ w → Subst (var y') y r2 w ∧ Subst j z r1 w)
-Rename-subst = {!!}
-
 Apart-rename : ∀{s t r : Tm}{y y' : V} →
                Apart s (bvs r) ≡ tt →
                Subst (var y') y t r → 
@@ -91,6 +75,6 @@ Apart-rename {s} {t1 · t2} {t1' · t2'} {y} {y'} apart (app su su₁) rewrite l
 Apart-rename {s} {t1 · t2} {t1' · t2'} {y} {y'} apart (app su su₁) | apart1 , apart2 | , 
   rewrite Apart-rename{s} apart1 su |  Apart-rename{s} apart2 su₁ =  refl
 Apart-rename {s} {ƛ z t} {ƛ z r} {y} {y'} apart (lam-go x x₁ su) with &&-elim {~ z ∈ s} apart
-Apart-rename {s} {ƛ z t} {ƛ z r} {y} {y'} apart (lam-go x x₁ su) | p1 , p2 rewrite p1 | =ℕ-sym y' z | x₁ = Apart-rename{s} p2 su
+Apart-rename {s} {ƛ z t} {ƛ z r} {y} {y'} apart (lam-go x x₁ su) | p1 , p2 rewrite p1 = Apart-rename{s} p2 su
 Apart-rename {s} {ƛ z t} {ƛ z t} {y} {y'} apart (lam-stop x) = apart
 

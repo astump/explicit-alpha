@@ -92,3 +92,7 @@ VI-ℕ = record {
         }
 
 open VI VI-ℕ public
+
+remove-fresh1 : ∀{vs : 𝕃 V} → remove _≃_ (fresh vs) (fresh vs :: vs) ≡ vs
+remove-fresh1{vs} rewrite ≃-refl{fresh vs}
+                | remove-not-member1{eq = _≃_}{vs}{fresh vs} (λ{a} → ≃-sym{a}) ≃-≡ (fresh-distinct{vs})= refl

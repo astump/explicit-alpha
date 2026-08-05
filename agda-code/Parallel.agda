@@ -10,6 +10,7 @@ module Parallel where
 open import Tm 
 open import Subst
 open import Substitution
+open import AlphaCanon
 open import Takahashi 
 
 data ⇒αβ : Tm → Tm → Set where
@@ -61,40 +62,16 @@ data ⇒αβ : Tm → Tm → Set where
 ∉-⇒αβ {x} {ƛ y s} {ƛ y t} e (lam x₁) | inj₁ i rewrite i = refl
 ∉-⇒αβ {x} {ƛ y s} {ƛ y t} e (lam x₁) | inj₂ i rewrite ∉-⇒αβ i x₁ | &&-ff (~ x =ℕ y) = refl
 
-graft⇒αβ : ∀{t1 t2 t1' t2' : Tm}{x : V} → 
-  varDiff t1 (fvs t2) ≡ tt →
-  t1 ⟨ ⇒αβ ⟩ t1' →
-  t2 ⟨ ⇒αβ ⟩ t2' →
-  graft1 t2 x t1 ⟨ ⇒αβ ⟩ graft1 t2' x t1'
-graft⇒αβ = {!!}
-{-
-subst-αtk :
-  ∀{t1 t2 t1' t2' s1 s2 t : Tm}{x : V}{vs : 𝕃 V}{σ : Substitution} → 
-  t1 ⟨ ⇒αβ ⟩ t1' →
-  t2 ⟨ ⇒αβ ⟩ t2' →   
-  t1' ≡ αtk s1 vs σ →
-  t2' ≡ αtk s2 vs σ →  
-  Subst t1 x t2 t →
-  t ⟨ ⇒αβ ⟩ αtk-subst s1 x s2 vs σ
-subst-αtk {t1} {var x} {.(αtk s1 vs σ)} {var x} {s1} {s2} {t1} {x} {vs} {σ} d1 var refl eq2 var-found rewrite eq2
-{-  with αtk-∘{s2}{vs}{[ x , αtk s1 vs [] ]}{[]} {!!} {!!} 
-subst-αtk {t1} {var x} {.(αtk s1 vs [])} {var x} {s1} {s2} {t1} {x} {vs} d1 var refl eq2 var-found | p  -}
-   = {!!}
-subst-αtk {t1} {var v} {t1'} {var v} {s1} {s2} {var v} {x} {vs} {σ} d1 var eq1 eq2 (var-not x₁) rewrite eq2 = {!!}
-subst-αtk {t1} {t2} {t1'} {t2'} {s1} {s2} {t} {x} {vs} {σ} d1 d2 eq1 eq2 (app su su₁) = {!!}
-subst-αtk {t1} {t2} {t1'} {t2'} {s1} {s2} {t} {x} {vs} {σ} d1 d2 eq1 eq2 (lam-go x₁ x₂ su) = {!!}
-subst-αtk {t1} {t2} {t1'} {t2'} {s1} {s2} {t} {x} {vs} {σ} d1 d2 eq1 eq2 (lam-stop x₁) = {!!}
-
-triangle-⇒αβ : ∀{s t : Tm}{vs : 𝕃 V} →
-               s ⟨ ⇒αβ ⟩ t →
-               t ⟨ ⇒αβ ⟩ (αtk s vs [])
-triangle-⇒αβ {s} {t}{vs} var = var
-triangle-⇒αβ {s} {t}{vs} (app x1 x2) = {!!}
-triangle-⇒αβ {(ƛ x s2) · s1} {t}{vs} (beta x1 x2 u) =
-  let p1 = triangle-⇒αβ{vs = vs} x1 in
-  let p2 = triangle-⇒αβ{vs = vs} x2 in
-    {!!}
-triangle-⇒αβ {s} {t}{vs} (alpha fr ne x2 u) = {!!}
-triangle-⇒αβ {s} {t}{vs} (lam x) = {!!}
-
--}
+triangle-⇒αβ : ∀{s t : Tm} →
+                varOk s ≡ tt → 
+                s ⟨ ⇒αβ ⟩ t →
+                t ⟨ ⇒αβ ⟩ (tk s)
+triangle-⇒αβ {var x} {t} vok var = var
+triangle-⇒αβ {var x · s2} {t1 · t2} vok (app var d2) = app var (triangle-⇒αβ vok d2)
+triangle-⇒αβ {s1 · s2 · s3} {t1 · t2} vok (app d1 d2) =
+  app (triangle-⇒αβ {s1 · s2} {t1} (&&-elim1 vok) d1) (triangle-⇒αβ {s3} {t2} (&&-elim2 vok) d2)
+triangle-⇒αβ {ƛ x s1 · s2} {t1 · t2} vok (app (alpha v n d u) d2) = {!!}
+triangle-⇒αβ {ƛ x s1 · s2} {t1 · t2} vok (app (lam d1) d2) = {!!}
+triangle-⇒αβ {(ƛ y s1) · s2} {t} vok (beta d1 d2 u) = {!!}
+triangle-⇒αβ {ƛ y s} {ƛ y' t} vok (alpha v n d u) = {!!}
+triangle-⇒αβ {ƛ y s} {ƛ y t } vok (lam d) = {!!}
