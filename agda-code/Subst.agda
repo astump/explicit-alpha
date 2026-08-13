@@ -5,6 +5,8 @@ open import VarInterface
 module Subst where
 
 open import Tm 
+open import Substitution 
+open import Apart
 
 data Subst : Tm → V → Tm → Tm → Set where
   var-found : ∀{t : Tm}{v : V} → 
@@ -63,7 +65,6 @@ Subst-refl {t1} {x} {ƛ y t2} {ƛ y r} (lam-go x₁ x₂ s) e rewrite e with x�
 Subst-refl {t1} {x} {ƛ y t2} {ƛ y r} (lam-go x₁ x₂ s) e | ()
 Subst-refl {t1} {x} {t2} {r} (lam-stop x₁) e = refl
 
-
 Apart-rename : ∀{s t r : Tm}{y y' : V} →
                Apart s (bvs r) ≡ tt →
                Subst (var y') y t r → 
@@ -71,10 +72,27 @@ Apart-rename : ∀{s t r : Tm}{y y' : V} →
 Apart-rename {s} {t} {r} {y} {y'} apart var-found = refl
 Apart-rename {s} {t} {r} {y} {y'} apart (var-not x) = refl
 Apart-rename {s} {t1 · t2} {t1' · t2'} {y} {y'} apart (app su su₁) rewrite list-all-append (λ v → ~ v ∈ s) (bvs t1) (bvs t2) |
-  list-all-append (λ v → ~ v ∈ s) (bvs t1') (bvs t2') with &&-elim{Apart s (bvs t1')} apart | ||-ff-elim{y' ∈ t1'}
-Apart-rename {s} {t1 · t2} {t1' · t2'} {y} {y'} apart (app su su₁) | apart1 , apart2 | , 
+  list-all-append (λ v → ~ v ∈ s) (bvs t1') (bvs t2') with &&-elim{Apart s (bvs t1')} apart 
+Apart-rename {s} {t1 · t2} {t1' · t2'} {y} {y'} apart (app su su₁) | apart1 , apart2 
   rewrite Apart-rename{s} apart1 su |  Apart-rename{s} apart2 su₁ =  refl
 Apart-rename {s} {ƛ z t} {ƛ z r} {y} {y'} apart (lam-go x x₁ su) with &&-elim {~ z ∈ s} apart
 Apart-rename {s} {ƛ z t} {ƛ z r} {y} {y'} apart (lam-go x x₁ su) | p1 , p2 rewrite p1 = Apart-rename{s} p2 su
 Apart-rename {s} {ƛ z t} {ƛ z t} {y} {y'} apart (lam-stop x) = apart
+
+substLem : ∀{t s : Tm}{x : V} →
+           Apart t (bvs s) ≡ tt → 
+           Subst t x s (graft1 t x s)
+substLem {t} {var y}   {x} ap with keep (x ≃ y)
+substLem {t} {var y}   {x} ap | tt , eq rewrite ≃-≡{x} eq | ≃-refl{y} = var-found
+substLem {t} {var y}   {x} ap | ff , eq rewrite ~≃-sym{x} eq = var-not eq
+substLem {t} {t1 · t2} {x} ap = app (substLem {t} {t1} {x} (Apart-++1{t}{bvs t1}{bvs t2} ap))
+                                    (substLem {t} {t2} {x} (Apart-++2{t}{bvs t1}{bvs t2} ap))
+substLem {t} {ƛ y t1}  {x} ap with keep (x ≃ y)
+substLem {t} {ƛ y t1}  {x} ap | tt , eq rewrite eq | graft-[]{t1} = lam-stop h
+ where h : ~ x ≃ y && x ∈ t1 ≡ ff
+       h rewrite eq = refl
+substLem {t} {ƛ y t1}  {x} ap | ff , eq rewrite eq with keep (x ∈ t1)
+substLem {t} {ƛ y t1}  {x} ap | ff , eq | tt , eq' =
+  lam-go (&&-intro{~ x ≃ y} (~-≡-ff eq) eq') (~-≡-tt (&&-elim1 ap)) (substLem{t}{t1}{x} (&&-elim2 ap))
+substLem {t} {ƛ y t1}  {x} ap | ff , eq | ff , eq' rewrite graft-~∈{x}{t}{t1} eq' = lam-stop (&&-ff-intro2{~ x ≃ y} eq')
 

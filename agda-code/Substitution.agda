@@ -4,6 +4,7 @@ open import VarInterface
 module Substitution where
 
 open import Tm
+open import Apart
 
 Substitution : Set
 Substitution = 𝕃 (V × Tm)
@@ -125,3 +126,15 @@ subst-var-not-member : ∀{x : V}{σ : Substitution} →
                        list-member _≃_ x (dom σ) ≡ ff → 
                        subst-var σ x ≡ var x
 subst-var-not-member{x}{σ} sl = lookup-nothing{σ} (lookup-not-member{x}{σ} sl)
+
+graft-~∈ : ∀{x : V}{t t' : Tm} →
+             x ∈ t' ≡ ff → 
+             graft ((x , t) :: []) t' ≡ t'
+graft-~∈ {x} {t} {var y} eq rewrite ~≃-sym{x} eq = refl
+graft-~∈ {x} {t} {t' · t''} eq rewrite graft-~∈{x}{t}{t'} (fst (||-ff-elim{x ∈ t'} eq))
+                                     | graft-~∈{x}{t}{t''} (snd (||-ff-elim{x ∈ t'} eq)) = refl
+graft-~∈ {x} {t} {ƛ y t'} eq with &&-ff-elim{~ x ≃ y} eq
+graft-~∈ {x} {t} {ƛ y t'} eq | inj₁ i rewrite ~ff-≡{x ≃ y} i | graft-[]{t'} = refl
+graft-~∈ {x} {t} {ƛ y t'} eq | inj₂ i with keep (x ≃ y)
+graft-~∈ {x} {t} {ƛ y t'} eq | inj₂ i | tt , eq' rewrite eq' | graft-[]{t'} = refl
+graft-~∈ {x} {t} {ƛ y t'} eq | inj₂ i | ff , eq' rewrite eq' | graft-~∈{x}{t}{t'} i = refl

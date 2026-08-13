@@ -9,7 +9,9 @@ module Parallel where
 
 open import Tm 
 open import Subst
-open import Substitution
+open import Apart
+open import Renaming
+open import Rename
 open import AlphaCanon
 open import Takahashi 
 
@@ -62,16 +64,48 @@ data ⇒αβ : Tm → Tm → Set where
 ∉-⇒αβ {x} {ƛ y s} {ƛ y t} e (lam x₁) | inj₁ i rewrite i = refl
 ∉-⇒αβ {x} {ƛ y s} {ƛ y t} e (lam x₁) | inj₂ i rewrite ∉-⇒αβ i x₁ | &&-ff (~ x =ℕ y) = refl
 
-triangle-⇒αβ : ∀{s t : Tm} →
-                varOk s ≡ tt → 
+{-
+⇒αβ-subst : ∀{s1 s2 t1 t2 t : Tm}{y : V} → 
+            Subst s1 y s2 t → 
+            s1 ⟨ ⇒αβ ⟩ t1 → 
+            s2 ⟨ ⇒αβ ⟩ t2 → 
+            t ⟨ ⇒αβ ⟩ graft1 t1 y t2
+⇒αβ-subst{t1}{t2}{t}{y} sb d1 d2  = {!!}
+-}
+
+varOk-tk : ∀{t : Tm}{vs : 𝕃 V} →
+           varsub (fvs t) vs ≡ tt → 
+           varOk vs t ≡ tt →
+           t ⟨ ⇒αβ ⟩ (tk t)
+varOk-tk{var x}{vs} sub ok = var
+varOk-tk{var x · t}{vs} sub ok = app var (varOk-tk{t}{vs} (isSublist-++2l{eq = _≃_}{[ x ]}{fvs t}{vs} sub) (&&-elim2 ok))
+varOk-tk{t1 · t2 · t3}{vs} sub ok =
+ app (varOk-tk{t1 · t2}{vs} (isSublist-++1l{eq = _≃_}{fvs t1 ++ fvs t2}{fvs t3}{vs} sub) (&&-elim1 ok))
+     (varOk-tk{t3}{vs} ((isSublist-++2l{eq = _≃_}{fvs t1 ++ fvs t2}{fvs t3}{vs} sub)) (&&-elim2 ok))
+varOk-tk{(ƛ x t1) · t2}{vs} sub ok =
+  beta {t2} {x} {t1} {tk t2} {tk t1}
+    (varOk-tk {t2} {vs} (isSublist-++2l{eq = _≃_}{remove _≃_ x (fvs t1)}{fvs t2}{vs} sub)
+       (&&-elim2 ok))
+    (varOk-tk {t1} {x :: vs}
+      (isSublist-remove{eq = _≃_}{fvs t1}{vs}{x} (λ{x} → ≃-sym{x})
+        ((isSublist-++1l{eq = _≃_}{remove _≃_ x (fvs t1)}{fvs t2}{vs} sub)))
+      (&&-elim2{~ varmem x vs} (&&-elim1 ok)))
+    (substLem {!!})
+varOk-tk{ƛ x t}{vs} sub ok =
+ lam (varOk-tk {t} {x :: vs} (isSublist-remove{eq = _≃_}{fvs t}{vs}{x} (λ{x} → ≃-sym{x}) sub) (&&-elim2 ok))
+
+triangle-⇒αβ : ∀{s t t' : Tm}{ρ : Renaming} →
                 s ⟨ ⇒αβ ⟩ t →
-                t ⟨ ⇒αβ ⟩ (tk s)
-triangle-⇒αβ {var x} {t} vok var = var
-triangle-⇒αβ {var x · s2} {t1 · t2} vok (app var d2) = app var (triangle-⇒αβ vok d2)
-triangle-⇒αβ {s1 · s2 · s3} {t1 · t2} vok (app d1 d2) =
-  app (triangle-⇒αβ {s1 · s2} {t1} (&&-elim1 vok) d1) (triangle-⇒αβ {s3} {t2} (&&-elim2 vok) d2)
-triangle-⇒αβ {ƛ x s1 · s2} {t1 · t2} vok (app (alpha v n d u) d2) = {!!}
-triangle-⇒αβ {ƛ x s1 · s2} {t1 · t2} vok (app (lam d1) d2) = {!!}
-triangle-⇒αβ {(ƛ y s1) · s2} {t} vok (beta d1 d2 u) = {!!}
-triangle-⇒αβ {ƛ y s} {ƛ y' t} vok (alpha v n d u) = {!!}
-triangle-⇒αβ {ƛ y s} {ƛ y t } vok (lam d) = {!!}
+                Rename ρ t t' → 
+                t' ⟨ ⇒αβ ⟩ (αtk s ρ)
+triangle-⇒αβ {var x} {t} {t'} {ρ} var var = var
+triangle-⇒αβ {var x · s} {var x · t} {var y · t'} {ρ} (app var d) (app var re) = app var (triangle-⇒αβ{s}{t}{t'}{ρ} d re)
+triangle-⇒αβ {s1 · s2 · s3} {t1 · t2} {t1' · t2'} {ρ} (app d1 d2) (app re1 re2) =
+ app (triangle-⇒αβ{s1 · s2}{t1}{t1'}{ρ} d1 re1) (triangle-⇒αβ{s3}{t2}{t2'}{ρ} d2 re2)
+triangle-⇒αβ {(ƛ x s1) · s2} {(ƛ x' t1) · t2} {t1' · t2'} {ρ} (app (alpha nf df d1 sb) d2) (app (lam ca re1) re2) =
+ {!!}
+triangle-⇒αβ {ƛ x s1 · s2} {ƛ x t1 · t2} {(ƛ x t1') · t2'} {ρ} (app (lam d1) d2) (app (lam ca re1) re2) = {!!}
+triangle-⇒αβ {(ƛ x s1) · s2} {t} {t'} {ρ} (beta d1 d2 sb) re = {!!}
+triangle-⇒αβ {ƛ y s} {ƛ z t} {ƛ z t'} {ρ} (alpha nf df d sb) (lam ca re) = {!!}
+triangle-⇒αβ {ƛ y s} {ƛ y t} {ƛ y t'} {ρ} (lam d) (lam ca re) = {!!}
+

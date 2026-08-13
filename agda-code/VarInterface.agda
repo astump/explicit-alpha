@@ -96,3 +96,72 @@ open VI VI-ℕ public
 remove-fresh1 : ∀{vs : 𝕃 V} → remove _≃_ (fresh vs) (fresh vs :: vs) ≡ vs
 remove-fresh1{vs} rewrite ≃-refl{fresh vs}
                 | remove-not-member1{eq = _≃_}{vs}{fresh vs} (λ{a} → ≃-sym{a}) ≃-≡ (fresh-distinct{vs})= refl
+
+varmem : V → 𝕃 V → 𝔹
+varmem x vs = list-member _≃_ x vs
+
+varsub : 𝕃 V → 𝕃 V → 𝔹
+varsub vs vs' = isSublist vs vs' _≃_
+
+varapart : 𝕃 V → 𝕃 V → 𝔹
+varapart vs vs' = disjoint _≃_ vs vs' 
+
+varrem : V → 𝕃 V → 𝕃 V
+varrem = remove _≃_
+
+varsub-++il : ∀{l1 l2 l3 : 𝕃 V} →
+                varsub l1 l3 ≡ tt →
+                varsub l2 l3 ≡ tt →
+                varsub (l1 ++ l2) l3 ≡ tt
+varsub-++il{l1}{l2}{l3} = isSublist-++il{eq = _≃_}{l1}{l2}{l3} 
+
+varsub-trans : ∀{l1 l2 l3 : 𝕃 V} →
+                varsub l1 l2 ≡ tt →
+                varsub l2 l3 ≡ tt →
+                varsub l1 l3 ≡ tt
+varsub-trans{l1}{l2}{l3} = isSublist-trans{eq = _≃_}{l1}{l2}{l3} ≃-≡
+
+varsub-++-merge : ∀ {l1 l1' l2 l2' : 𝕃 V} →
+                    varsub l1 l1' ≡ tt →
+                    varsub l2 l2' ≡ tt →                       
+                    varsub (l1 ++ l2) (l1' ++ l2') ≡ tt
+varsub-++-merge{l1}{l1'}{l2}{l2'} = isSublist-++-merge{eq = _≃_}{l1}{l1'}{l2}{l2'} ≃-≡ (λ{x} → ≃-refl{x})
+
+varsub-++1 : ∀ {l1 l2 : 𝕃 V} →
+             varsub l1 (l1 ++ l2) ≡ tt
+varsub-++1{l1}{l2} = isSublist-++1{eq = _≃_} {l1}{l2} (λ{x} → ≃-refl{x})
+
+varsub-++2a : ∀ {l1 l2 : 𝕃 V} →
+             varsub l2 (l1 ++ l2) ≡ tt
+varsub-++2a{l1}{l2} = isSublist-++2a{eq = _≃_} {l1}{l2} (λ{x} → ≃-refl{x})
+
+
+varsub-refl : ∀{l : 𝕃 V} → varsub l l ≡ tt 
+varsub-refl{l} = isSublist-refl{eq = _≃_} (λ{x} → ≃-refl{x}) {l}
+
+varsub-remove-both : ∀{l1 l2 : 𝕃 V}{a : V} →
+                     varsub l1 l2 ≡ tt →
+                     varsub (varrem a l1) (varrem a l2) ≡ tt
+varsub-remove-both{l1}{l2}{a} = isSublist-remove-both{eq = _≃_}{l1}{l2}{a} (λ{x} → ≃-sym{x}) ≃-≡
+
+varrem-commute : ∀{x1 x2 : V}{xs : 𝕃 V} →
+                 varrem x1 (varrem x2 xs) ≡ varrem x2 (varrem x1 xs)
+varrem-commute{x1}{x2}{xs} = remove-commute{eq = _≃_} {x1}{x2}{xs}
+
+varrem-++ : ∀{l1 l2 : 𝕃 V}{x : V} →
+             varrem x (l1 ++ l2) ≡ varrem x l1 ++ varrem x l2
+varrem-++{l1}{l2}{x} = remove-++ _≃_ x l1 l2
+
+varsub-remove2 : ∀{l1 l2 : 𝕃 V}{a : V} →
+                 varsub l1 l2 ≡ tt →
+                 varsub (varrem a l1) l2 ≡ tt
+varsub-remove2{l1}{l2}{a} sb = isSublist-remove2{eq = _≃_}{l1}{l2}{a} (λ{x} → ≃-sym{x}) sb
+
+varapart-[] : ∀{l : 𝕃 V} → varapart l [] ≡ tt
+varapart-[]{l} = disjoint-[]{V}{l}{_≃_}
+
+varapart-++i : ∀{l1 l2 l3 : 𝕃 V} →
+              varapart l1 l2 ≡ tt →
+              varapart l1 l3 ≡ tt →
+              varapart l1 (l2 ++ l3) ≡ tt
+varapart-++i{l1}{l2}{l3} = disjoint-++i{V}{l1}{l2}{l3}{_≃_}
