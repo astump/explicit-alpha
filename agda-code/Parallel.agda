@@ -12,29 +12,31 @@ open import Renaming
 open import AlphaCanon
 open import Takahashi 
 
-data ⇒αβ : Tm → Tm → Set where
+{- the boolean tells whether or not this is alpha-free -}
+data ⇒αβ : 𝔹 → Tm → Tm → Set where
   var : ∀{v : V} → 
-          var v ⟨ ⇒αβ ⟩ var v
-  app : ∀{t1 t2 t1' t2' : Tm} →
-        t1 ⟨ ⇒αβ ⟩ t1' →
-        t2 ⟨ ⇒αβ ⟩ t2' →
-        t1 · t2 ⟨ ⇒αβ ⟩ t1' · t2'
-  beta : ∀{t1 : Tm}{x : V}{t2 : Tm}{t1' t2' r : Tm} →
-         t1 ⟨ ⇒αβ ⟩ t1' →
-         t2 ⟨ ⇒αβ ⟩ t2' →        
+          var v ⟨ ⇒αβ tt ⟩ var v
+  app : ∀{t1 t2 t1' t2' : Tm}{b1 b2 : 𝔹} →
+        t1 ⟨ ⇒αβ b1 ⟩ t1' →
+        t2 ⟨ ⇒αβ b2 ⟩ t2' →
+        t1 · t2 ⟨ ⇒αβ (b1 && b2) ⟩ t1' · t2'
+  beta : ∀{t1 : Tm}{x : V}{t2 : Tm}{t1' t2' r : Tm}{b1 b2 : 𝔹} →
+         t1 ⟨ ⇒αβ b1 ⟩ t1' →
+         t2 ⟨ ⇒αβ b2 ⟩ t2' →        
          Subst t1' x t2' r → 
-         (ƛ x t2) · t1 ⟨ ⇒αβ ⟩ r
-  alpha : ∀{x x' : V}{t t' r : Tm} →
+         (ƛ x t2) · t1 ⟨ ⇒αβ (b1 && b2) ⟩ r
+  alpha : ∀{x x' : V}{t t' r : Tm}{b : 𝔹} →
           x' ∈ t' ≡ ff →                              -- avoid capture
           x ≃ x' ≡ ff → 
-          t ⟨ ⇒αβ ⟩ t' →
+          t ⟨ ⇒αβ b ⟩ t' →
           Subst (var x') x t' r → 
-          (ƛ x t) ⟨ ⇒αβ ⟩ (ƛ x' r)
-  lam : ∀{t t' : Tm}{x : V} →
-        t ⟨ ⇒αβ ⟩ t' →
-        ƛ x t ⟨ ⇒αβ ⟩ ƛ x t'
+          (ƛ x t) ⟨ ⇒αβ ff ⟩ (ƛ x' r)
+  lam : ∀{t t' : Tm}{x : V}{b : 𝔹} →
+        t ⟨ ⇒αβ b ⟩ t' →
+        ƛ x t ⟨ ⇒αβ b ⟩ ƛ x t'
 
-⇒αβ-refl : ∀{t : Tm} → t ⟨ ⇒αβ ⟩ t
+
+⇒αβ-refl : ∀{t : Tm} → t ⟨ ⇒αβ tt ⟩ t
 ⇒αβ-refl {var x} = var
 ⇒αβ-refl {t · t₁} = app ⇒αβ-refl ⇒αβ-refl
 ⇒αβ-refl {ƛ x t} = lam ⇒αβ-refl
@@ -42,7 +44,7 @@ data ⇒αβ : Tm → Tm → Set where
 varOk-tk : ∀{t : Tm}{vs : 𝕃 V} →
            varsub (fvs t) vs ≡ tt → 
            varOk vs t ≡ tt →
-           t ⟨ ⇒αβ ⟩ (tk t)
+           t ⟨ ⇒αβ tt ⟩ (tk t)
 varOk-tk{var x}{vs} sub ok = var
 varOk-tk{var x · t}{vs} sub ok = app var (varOk-tk{t}{vs} (isSublist-++2l{eq = _≃_}{[ x ]}{fvs t}{vs} sub) (&&-elim2 ok))
 varOk-tk{t1 · t2 · t3}{vs} sub ok =
@@ -70,12 +72,12 @@ varOk-tk{ƛ x t}{vs} sub ok =
 {--------------------------------------------------------------------------------
  - Main theorem 1:
 
-   Any term's α-canonization can be completely developed.
+   Any term's α-canonization can be completely developed, without alpha-steps.
  -
  --------------------------------------------------------------------------------}
 ⇒αtk : ∀{t : Tm} →
        let a = αcanon t in
-        a ⟨ ⇒αβ ⟩ tk a 
+        a ⟨ ⇒αβ tt ⟩ tk a 
 ⇒αtk{t} = varOk-tk h2 (αc-varOk{t} h)
  where h : varsub (fvs t) (domr (diagonal (fvs t))) ≡ tt
        h rewrite domr-diag{fvs t} = varsub-refl{fvs t}
