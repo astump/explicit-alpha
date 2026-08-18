@@ -5,7 +5,6 @@ open import lib hiding (_>>=_ ; return ; _∘_)
 open import relations
 open import diamond
 open import VarInterface
-open import Monad
 
 module AlphaCanon where
 
@@ -36,8 +35,6 @@ varOk vs (var x) = varmem x vs
 varOk vs (t1 · t2) = varOk vs t1 && varOk vs t2
 varOk vs (ƛ x t) = ~ varmem x vs && varOk (x :: vs) t
 
-
-
 αc-varOk : ∀{t : Tm}{ρ : Renaming} →
              varsub (fvs t) (domr ρ) ≡ tt → 
              varOk (ranr ρ) (αc t ρ) ≡ tt
@@ -47,7 +44,6 @@ varOk vs (ƛ x t) = ~ varmem x vs && varOk (x :: vs) t
 αc-varOk {ƛ x t}{ρ} sb =
   &&-intro {~ varmem (fresh (ranr ρ)) (ranr ρ)} (~-≡-ff (fresh-distinct{ranr ρ})) 
    (αc-varOk {t} {(x , fresh (ranr ρ)) :: ρ} (varsub-remove {fvs t} {domr ρ} {x} sb))
-
 
 varOk-Apart' : ∀{t : Tm}{vs vs' : 𝕃 V} →
                 varOk vs' t ≡ tt →

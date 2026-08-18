@@ -5,7 +5,6 @@ open import lib hiding (_>>=_ ; return ; _∘_)
 open import relations
 open import diamond
 open import VarInterface
-open import Monad
 
 module Takahashi where
 
