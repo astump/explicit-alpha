@@ -115,6 +115,11 @@ varsub-++il : ∀{l1 l2 l3 : 𝕃 V} →
                 varsub (l1 ++ l2) l3 ≡ tt
 varsub-++il{l1}{l2}{l3} = isSublist-++il{eq = _≃_}{l1}{l2}{l3} 
 
+varsub-++-cong : ∀{l1 l2 l3 : 𝕃 V} →
+                  varsub l2 l3 ≡ tt → 
+                  varsub (l1 ++ l2) (l1 ++ l3) ≡ tt
+varsub-++-cong{l1}{l2}{l3} = isSublist-++-cong{V}{_≃_}{l1}{l2}{l3} (λ{x} → ≃-refl{x})
+
 varsub-trans : ∀{l1 l2 l3 : 𝕃 V} →
                 varsub l1 l2 ≡ tt →
                 varsub l2 l3 ≡ tt →
@@ -135,6 +140,10 @@ varsub-++2a : ∀ {l1 l2 : 𝕃 V} →
              varsub l2 (l1 ++ l2) ≡ tt
 varsub-++2a{l1}{l2} = isSublist-++2a{eq = _≃_} {l1}{l2} (λ{x} → ≃-refl{x})
 
+varsub-++2 : ∀{l1 l2 l2' : 𝕃 V} →
+             varsub l2 l2' ≡ tt →
+             varsub l2 (l1 ++ l2') ≡ tt
+varsub-++2{l1}{l2}{l2'} = isSublist-++2{V}{_≃_}{l1}{l2}{l2'} (λ{x} → ≃-refl{x})
 
 varsub-refl : ∀{l : 𝕃 V} → varsub l l ≡ tt 
 varsub-refl{l} = isSublist-refl{eq = _≃_} (λ{x} → ≃-refl{x}) {l}
@@ -165,3 +174,72 @@ varapart-++i : ∀{l1 l2 l3 : 𝕃 V} →
               varapart l1 l3 ≡ tt →
               varapart l1 (l2 ++ l3) ≡ tt
 varapart-++i{l1}{l2}{l3} = disjoint-++i{V}{l1}{l2}{l3}{_≃_}
+
+varmem-++ : ∀(x : V)(l1 l2 : 𝕃 V) →
+            varmem x (l1 ++ l2) ≡ varmem x l1 || varmem x l2
+varmem-++ x l1 l2 = list-member-++ _≃_ x l1 l2
+
+varmem-remove : ∀{x y : V}{l : 𝕃 V} →
+                varmem x (varrem y l) ≡ tt →
+                x ≃ y ≡ tt ∨ varmem x l ≡ tt
+varmem-remove{x}{y}{l} = list-member-remove{eq = _≃_}{x}{y}{l}
+
+varmem-remove2 : ∀{x y : V}{l : 𝕃 V} →
+                 varmem x (varrem y l) ≡ ff →
+                 x ≃ y ≡ tt ∨ varmem x l ≡ ff
+varmem-remove2{x}{y}{l} = list-member-remove2{V}{_≃_}{x}{y}{l} ≃-≡
+
+varmem-remove3 : ∀{x y : V}{l : 𝕃 V} →
+                 x ≃ y ≡ ff →
+                 varmem x l ≡ tt →
+                 varmem x (varrem y l) ≡ tt
+varmem-remove3{x}{y}{l} u v rewrite remove-not-member{V}{_≃_}{l}{y}{x} (λ{x} → ≃-sym{x}) ≃-≡  (~≃-sym{x} u) = v 
+                 
+varmem-remove4 : ∀{x y : V}{l : 𝕃 V} →
+                 x ≃ y ≡ ff →
+                 varmem x l ≡ ff →
+                 varmem x (varrem y l) ≡ ff
+varmem-remove4{x}{y}{l} u v rewrite remove-not-member{V}{_≃_}{l}{y}{x} (λ{x} → ≃-sym{x}) ≃-≡  (~≃-sym{x} u) = v 
+
+varmem-remove-same : ∀{x : V}{l : 𝕃 V} →
+                     varmem x (varrem x l) ≡ ff
+varmem-remove-same{x}{l} = list-member-remove-same{V}{_≃_}{x}{l}
+
+varapart-varsub : ∀{l1 l1' l2 l2' : 𝕃 V} →
+                   varsub l1 l1' ≡ tt →
+                   varsub l2 l2' ≡ tt →                    
+                   varapart l1' l2' ≡ tt →
+                   varapart l1 l2 ≡ tt
+varapart-varsub{l1}{l1'}{l2}{l2'} =                    
+   disjoint-sublist{V}{_≃_}{l1}{l1'}{l2}{l2'} ≃-≡ (λ{x} → ≃-sym{x})
+
+varapart-sym : ∀{l1 l2 : 𝕃 V } →
+              varapart l1 l2 ≡ tt →
+              varapart l2 l1 ≡ tt
+varapart-sym{l1}{l2} = disjoint-sym{V}{l1}{l2}{_≃_} (λ{x} → ≃-sym{x})
+
+varmem-varsub : ∀{x : V}{l1 l2 : 𝕃 V} →
+                varmem x l1 ≡ tt →
+                varsub l1 l2 ≡ tt →
+                varmem x l2 ≡ tt
+varmem-varsub{x}{l1}{l2} = list-member-sub{V}{_≃_}{x}{l1}{l2} ≃-≡
+
+varmem-sub-ff : ∀{a : V}{l1 l2 : 𝕃 V} →
+                 varsub l1 l2 ≡ tt →
+                 varmem a l2 ≡ ff →
+                 varmem a l1 ≡ ff
+varmem-sub-ff{a}{l1}{l2} = list-member-sub-ff{V}{_≃_}{a}{l1}{l2} ≃-≡
+
+varsub-remove : ∀{l1 l2 : 𝕃 V}{a : V} →
+                varsub (varrem a l1) l2 ≡ tt →
+                varsub l1 (a :: l2) ≡ tt
+varsub-remove{l1}{l2}{a} = isSublist-remove{V}{_≃_}{l1}{l2}{a} (λ{x} → ≃-sym{x})
+
+varsub-remove1 : ∀{l1 l2 : 𝕃 V}{a : V} →
+                  varsub l1 (a :: l2) ≡ tt →
+                  varsub (varrem a l1) l2 ≡ tt 
+varsub-remove1{l1}{l2}{a} sb = isSublist-remove1{V}{_≃_}{l1}{l2}{a} (λ{x} → ≃-sym{x}) sb
+
+varsub-++ : ∀{l1 l2 l3 : 𝕃 V} →
+            varsub (l1 ++ l2) l3 ≡ varsub l1 l3 && varsub l2 l3
+varsub-++{l1}{l2}{l3} = list-all-append (λ a → varmem a l3) l1 l2            

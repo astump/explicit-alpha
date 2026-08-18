@@ -6,7 +6,7 @@ module Apart where
 open import Tm
 
 Apart : Tm → 𝕃 V → 𝔹
-Apart t vs = list-all (λ v → ~ v ∈ t) vs
+Apart t vs = varapart vs (fvs t) 
 
 Apart-++1 : ∀{t : Tm}{vs1 vs2 : 𝕃 V} →
             Apart t (vs1 ++ vs2) ≡ tt →

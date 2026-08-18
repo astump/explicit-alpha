@@ -130,11 +130,98 @@ subst-var-not-member{x}{σ} sl = lookup-nothing{σ} (lookup-not-member{x}{σ} sl
 graft-~∈ : ∀{x : V}{t t' : Tm} →
              x ∈ t' ≡ ff → 
              graft ((x , t) :: []) t' ≡ t'
-graft-~∈ {x} {t} {var y} eq rewrite ~≃-sym{x} eq = refl
-graft-~∈ {x} {t} {t' · t''} eq rewrite graft-~∈{x}{t}{t'} (fst (||-ff-elim{x ∈ t'} eq))
-                                     | graft-~∈{x}{t}{t''} (snd (||-ff-elim{x ∈ t'} eq)) = refl
-graft-~∈ {x} {t} {ƛ y t'} eq with &&-ff-elim{~ x ≃ y} eq
-graft-~∈ {x} {t} {ƛ y t'} eq | inj₁ i rewrite ~ff-≡{x ≃ y} i | graft-[]{t'} = refl
-graft-~∈ {x} {t} {ƛ y t'} eq | inj₂ i with keep (x ≃ y)
-graft-~∈ {x} {t} {ƛ y t'} eq | inj₂ i | tt , eq' rewrite eq' | graft-[]{t'} = refl
-graft-~∈ {x} {t} {ƛ y t'} eq | inj₂ i | ff , eq' rewrite eq' | graft-~∈{x}{t}{t'} i = refl
+graft-~∈ {x} {t} {var y} eq rewrite ~≃-sym{x} (∈var{x}{y}{ff} eq) = refl -- rewrite ~≃-sym{x} eq = refl
+graft-~∈ {x} {t} {t' · t''} eq rewrite graft-~∈{x}{t}{t'} (fst (∈·{x}{t'}{t''} eq))
+                                     | graft-~∈{x}{t}{t''} (snd (∈·{x}{t'}{t''} eq)) = refl
+graft-~∈ {x} {t} {ƛ y t'} eq with varmem-remove2{x}{y}{fvs t'} eq 
+graft-~∈ {x} {t} {ƛ y t'} eq | inj₁ i rewrite i | graft-[]{t'} = refl
+graft-~∈ {x} {t} {ƛ y t'} eq | inj₂ i with x ≃ y 
+graft-~∈ {x} {t} {ƛ y t'} eq | inj₂ i | tt rewrite graft-[]{t'} = refl
+graft-~∈ {x} {t} {ƛ y t'} eq | inj₂ i | ff rewrite graft-~∈{x}{t}{t'} i = refl
+
+fvs-graft : ∀{x : V}{t1 t2 : Tm} →
+               varsub (fvs (graft1 t2 x t1)) (varrem x (fvs t1) ++ fvs t2) ≡ tt
+fvs-graft {x} {var y} {t} with keep (x ≃ y)
+fvs-graft {x} {var y} {t} | tt , eq rewrite eq | ≃-sym{x} eq = isSublist-refl (λ{x} → ≃-refl{x}) {fvs t}
+fvs-graft {x} {var y} {t} | ff , eq rewrite eq | ~≃-sym{x} eq | ≃-refl{y} = refl
+fvs-graft {x} {t1 · t2} {t} = varsub-++il {fvs (graft [ x , t ] t1)}
+                                  {fvs (graft [ x , t ] t2)}
+                                  {varrem x (fvs t1 ++ fvs t2) ++ fvs t}
+                                  (varsub-trans {fvs (graft [ x , t ] t1)}
+                                    {varrem x (fvs t1) ++ fvs t}
+                                    {varrem x (fvs t1 ++ fvs t2) ++ fvs t} 
+                                    (fvs-graft{x}{t1}{t})
+                                    (varsub-++-merge {varrem x (fvs t1)}
+                                      {varrem x (fvs t1 ++ fvs t2)} {fvs t} {fvs t} 
+                                      (varsub-trans  {varrem x (fvs t1)}
+                                        {varrem x (fvs t1) ++ varrem x (fvs t2)}
+                                        {varrem x (fvs t1 ++ fvs t2)} 
+                                        (varsub-++1  {varrem x (fvs t1)}
+                                           {varrem x (fvs t2)}) h)
+                                           (varsub-refl {fvs t})))
+                                  (varsub-trans {fvs (graft [ x , t ] t2)}
+                                    {varrem x (fvs t2) ++ fvs t}
+                                    {varrem x (fvs t1 ++ fvs t2) ++ fvs t}
+                                    (fvs-graft {x} {t2} {t})
+                                    ((varsub-++-merge {varrem x (fvs t2)}
+                                      {varrem x (fvs t1 ++ fvs t2)} {fvs t} {fvs t} 
+                                      (varsub-trans  {varrem x (fvs t2)}
+                                        {varrem x (fvs t1) ++ varrem x (fvs t2)}
+                                        {varrem x (fvs t1 ++ fvs t2)} 
+                                        (varsub-++2a  {varrem x (fvs t1)}
+                                           {varrem x (fvs t2)}) h)
+                                           (varsub-refl {fvs t}))))
+    where h : isSublist (varrem x (fvs t1) ++ varrem x (fvs t2))
+                        (varrem x (fvs t1 ++ fvs t2)) _≃_
+              ≡ tt
+          h rewrite remove-++ _≃_ x (fvs t1) (fvs t2) | isSublist-refl{eq = _≃_} (λ{x} → ≃-refl{x})
+                                                            {varrem x (fvs t1) ++ varrem x (fvs t2)} = refl
+fvs-graft {x} {ƛ y t1} {t} with keep (x ≃ y)
+fvs-graft {x} {ƛ y t1} {t} | tt , eq rewrite eq | graft-[] {t1} | ≃-≡{x} eq | remove-idem{eq = _≃_}{y}{fvs t1} = varsub-++1{varrem y (fvs t1)}
+fvs-graft {x} {ƛ y t1} {t} | ff , eq rewrite eq  =
+  varsub-trans {varrem y (fvs (graft1 t x t1))}{varrem y (varrem x (fvs t1) ++ fvs t)}{varrem x (varrem y (fvs t1)) ++ fvs t}
+    (varsub-remove-both {fvs (graft1 t x t1)}
+      {varrem x (fvs t1) ++ fvs t} {y} (fvs-graft{x}{t1}{t})) h
+ where g : varsub (varrem y (varrem x (fvs t1)))
+                  (varrem x (varrem y (fvs t1)))
+            ≡ tt
+       g rewrite varrem-commute{x}{y}{fvs t1} = varsub-refl{varrem y (varrem x (fvs t1))}
+       h : varsub (varrem y (varrem x (fvs t1) ++ fvs t))
+                  (varrem x (varrem y (fvs t1)) ++ fvs t)
+            ≡ tt
+       h rewrite varrem-++{varrem x (fvs t1)}{fvs t}{y} =
+         varsub-++-merge {varrem y (varrem x (fvs t1))}
+          {varrem x (varrem y (fvs t1))} {varrem y (fvs t)} {fvs t} g (varsub-remove2 {fvs t} {fvs t} {y} (varsub-refl{fvs t})) 
+
+bvs-graft : ∀{x : V}{t1 t2 : Tm} →
+            varsub (bvs (graft1 t2 x t1)) (bvs t1 ++ bvs t2) ≡ tt
+bvs-graft {x} {var y} {t} with y ≃ x
+bvs-graft {x} {var y} {t} | tt = varsub-refl{bvs t}
+bvs-graft {x} {var y} {t} | ff = refl
+bvs-graft {x} {t1 · t2} {t} = varsub-++il {bvs (graft1 t x t1)} {bvs (graft1 t x t2)}
+                               {bvs (t1 · t2) ++ bvs t}
+                               (varsub-trans {bvs (graft1 t x t1)} {bvs t1 ++ bvs t}
+                                 {(bvs t1 ++ bvs t2) ++ bvs t}
+                                 (bvs-graft{x}{t1}{t})
+                                 (varsub-++-merge {bvs t1} {bvs t1 ++ bvs t2} {bvs t} {bvs t}
+                                   (varsub-++1{bvs t1}{bvs t2})
+                                   (varsub-refl{bvs t})))
+                               (varsub-trans {bvs (graft1 t x t2)} {bvs t2 ++ bvs t}
+                                 {(bvs t1 ++ bvs t2) ++ bvs t}
+                                 (bvs-graft{x}{t2}{t})
+                                 ((varsub-++-merge {bvs t2} {bvs t1 ++ bvs t2} {bvs t} {bvs t}
+                                   (varsub-++2a{bvs t1}{bvs t2})
+                                   (varsub-refl{bvs t}))))
+bvs-graft {x} {ƛ y t1} {t} with x ≃ y 
+bvs-graft {x} {ƛ y t1} {t} | tt rewrite ≃-refl{y} | graft-[]{t1} =
+   list-all-sub {p = λ a → varmem a (bvs t1 ++ bvs t)}
+                {q = λ a → (a ≃ y) || varmem a (bvs t1 ++ bvs t)}
+                (bvs t1)
+                (λ a → ||-intro2{a ≃ y})
+                (varsub-++1{bvs t1}{bvs t}) 
+bvs-graft {x} {ƛ y t1} {t} | ff rewrite ≃-refl{y} =
+   list-all-sub {p = λ a → varmem a (bvs t1 ++ bvs t)}
+                {q = λ a → (a ≃ y) || varmem a (bvs t1 ++ bvs t)}
+                (bvs (graft1 t x t1))
+                (λ a → ||-intro2{a ≃ y})
+                (bvs-graft{x}{t1}{t})

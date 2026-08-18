@@ -19,6 +19,9 @@ open import Renaming
   let n = fresh (ranr ρ) in
     ƛ n (αc t ((x , n) :: ρ))
 
+αcanon : Tm → Tm
+αcanon t = αc t (diagonal (fvs t))
+
 {- varOk vs t
 
    This means that the variables in vs are not bound in t
@@ -33,30 +36,41 @@ varOk vs (var x) = varmem x vs
 varOk vs (t1 · t2) = varOk vs t1 && varOk vs t2
 varOk vs (ƛ x t) = ~ varmem x vs && varOk (x :: vs) t
 
-αc-varOk : ∀{t : Tm}{ρ : Renaming} →
-           varOk (domr ρ) t ≡ tt → 
-           varOk (ranr ρ) (αc t ρ) ≡ tt
-αc-varOk {var x} {ρ} vok = varmem-rename{x}{ρ} vok
-αc-varOk {t1 · t2} {ρ} vok = &&-intro (αc-varOk{t1}{ρ} (&&-elim1 vok)) (αc-varOk{t2}{ρ} (&&-elim2 vok))
-αc-varOk {ƛ x t} {ρ} vok rewrite fresh-distinct{ranr ρ} = αc-varOk{t}{(x , fresh (ranr ρ)) :: ρ}  (&&-elim2 vok)
 
-varOk-Apart : ∀{t : Tm}{vs : 𝕃 V} →
-                varOk vs t ≡ tt →
+
+αc-varOk : ∀{t : Tm}{ρ : Renaming} →
+             varsub (fvs t) (domr ρ) ≡ tt → 
+             varOk (ranr ρ) (αc t ρ) ≡ tt
+αc-varOk {var x}{ρ} sb = varmem-rename{x}{ρ} (&&-elim1 sb)
+αc-varOk {t1 · t2}{ρ} sb rewrite varsub-++{fvs t1}{fvs t2}{domr ρ} | αc-varOk{t1}{ρ} (&&-elim1 sb) 
+                               | αc-varOk{t2}{ρ} (&&-elim2 sb) = refl
+αc-varOk {ƛ x t}{ρ} sb =
+  &&-intro {~ varmem (fresh (ranr ρ)) (ranr ρ)} (~-≡-ff (fresh-distinct{ranr ρ})) 
+   (αc-varOk {t} {(x , fresh (ranr ρ)) :: ρ} (varsub-remove {fvs t} {domr ρ} {x} sb))
+
+
+varOk-Apart' : ∀{t : Tm}{vs vs' : 𝕃 V} →
+                varOk vs' t ≡ tt →
+                varsub vs vs' ≡ tt → 
                 varapart vs (bvs t) ≡ tt
-varOk-Apart {var x} {vs} ok = varapart-[]{vs}
-varOk-Apart {t1 · t2} {vs} ok = varapart-++i{vs}{bvs t1}{bvs t2} (varOk-Apart{t1}{vs} (&&-elim1 ok)) (varOk-Apart{t2}{vs} (&&-elim2 ok))
-varOk-Apart {ƛ x t} {vs} ok rewrite refl{x = 0} with varOk-Apart{t}{x :: vs} (&&-elim2 ok) 
-varOk-Apart {ƛ x t} {vs} ok | p = 
-  list-all-sub {p = λ a → ~ (a ≃ x) && ~ varmem a (bvs t)}
-               {λ a → ~ ((a ≃ x) || varmem a (bvs t))} vs
-               j
-               (list-all-&& {p = λ a → ~ (a ≃ x)} {λ a → ~ varmem a (bvs t)} vs
-                 (list-all-sub {p = λ a → ~ x ≃ a}{λ a → ~ a ≃ x} vs h
-                   (list-member-list-all-ff2{eq = _≃_}{x}{vs} (~-≡-tt (&&-elim1 ok))))
-                 (&&-elim2 p))
-   where h : ∀(a : ℕ) → ~ x ≃ a ≡ tt → ~ a ≃ x ≡ tt
-         h a u rewrite ~≃-sym{x} (~-≡-tt{x ≃ a} u) = refl
-         j : ∀(a : ℕ) →
-             ~ a =ℕ x && ~ varmem a (bvs t) ≡ tt →
-             ~ (a =ℕ x || varmem a (bvs t)) ≡ tt
-         j a v rewrite ~-≡-tt{a ≃ x} (&&-elim1 v) = &&-elim2 v
+varOk-Apart' {var x} {vs} {vs'} ok sb = varapart-[]{vs}
+varOk-Apart' {t1 · t2} {vs} {vs'} ok sb = varapart-++i {vs} {bvs t1} {bvs t2}
+                                            (varOk-Apart'{t1}{vs}{vs'} (&&-elim1 ok) sb) 
+                                            (varOk-Apart'{t2}{vs}{vs'} (&&-elim2 ok) sb) 
+varOk-Apart' {ƛ x t} {vs} {vs'} ok sb = 
+ varapart-++i {vs} {[ x ]} {bvs t}
+   (varapart-sym {[ x ]} {vs} h )
+   (varOk-Apart' {t} {vs} {x :: vs'} (&&-elim2 ok) (varsub-++2{[ x ]}{vs}{vs'} sb))
+ where h : varapart [ x ] vs ≡ tt
+       h rewrite varmem-sub-ff{x}{vs}{vs'} sb (~-≡-tt {varmem x vs'} (&&-elim1 ok)) = refl
+
+fvs-αc : ∀{t : Tm}{ρ : Renaming} →
+         varsub (fvs t) (domr ρ) ≡ tt → 
+         varsub (fvs (αc t ρ)) (ranr ρ) ≡ tt
+fvs-αc {var x} {ρ} sb rewrite varmem-rename{x}{ρ} (&&-elim1 sb) = refl
+fvs-αc {t1 · t2} {ρ} sb rewrite varsub-++{fvs t1}{fvs t2}{domr ρ} =
+ varsub-++il {fvs (αc t1 ρ)} {fvs (αc t2 ρ)} {ranr ρ}
+    (fvs-αc{t1}{ρ} (&&-elim1 sb)) (fvs-αc{t2}{ρ} (&&-elim2 sb))
+fvs-αc {ƛ x t} {ρ} sb = varsub-remove1 {fvs (αc t ((x , fresh (ranr ρ)) :: ρ))} {ranr ρ}
+                         {fresh (ranr ρ)} (fvs-αc {t} {(x , fresh (ranr ρ)) :: ρ} (varsub-remove {fvs t} {domr ρ} {x} sb))
+

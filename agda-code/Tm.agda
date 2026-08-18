@@ -31,13 +31,21 @@ infix 8 _∈_
 
 -- x ∈ t means x occurs free in t
 _∈_ : V → Tm → 𝔹
-x ∈ var y = x ≃ y 
-x ∈ t1 · t2 = x ∈ t1 || x ∈ t2 
-x ∈ ƛ y t = ~ x ≃ y && x ∈ t
-
+x ∈ t = varmem x (fvs t)
 
 bvs : Tm → 𝕃 V
 bvs (var x) = []
 bvs (t · t₁) = bvs t ++ bvs t₁ 
 bvs (ƛ x t) = x :: bvs t
 
+∈var : ∀{x y : V}{b : 𝔹} →
+       x ∈ var y ≡ b →
+       x ≃ y ≡ b
+∈var{x}{y}{b} eq with(x ≃ y)
+∈var{x}{y}{b} eq | tt = eq
+∈var{x}{y}{b} eq | ff = eq
+
+∈· : ∀{x : V}{t1 t2 : Tm} →
+     x ∈ t1 · t2 ≡ ff →
+     x ∈ t1 ≡ ff ∧ x ∈ t2 ≡ ff
+∈·{x}{t1}{t2} eq rewrite varmem-++ x (fvs t1)(fvs t2) = (||≡ff₁ eq) , (||≡ff₂ eq)

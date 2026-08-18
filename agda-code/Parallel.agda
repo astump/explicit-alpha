@@ -42,6 +42,7 @@ data ⇒αβ : Tm → Tm → Set where
 ⇒αβ-refl {t · t₁} = app ⇒αβ-refl ⇒αβ-refl
 ⇒αβ-refl {ƛ x t} = lam ⇒αβ-refl
 
+{-
 ∉-⇒αβ : ∀{x : V}{s t : Tm} → 
          x ∈ s ≡ ff →
          s ⟨ ⇒αβ ⟩ t →
@@ -63,7 +64,7 @@ data ⇒αβ : Tm → Tm → Set where
 ∉-⇒αβ {x} {ƛ y s} {ƛ y t} e (lam x₁) with &&-ff-elim{~ x =ℕ y } e 
 ∉-⇒αβ {x} {ƛ y s} {ƛ y t} e (lam x₁) | inj₁ i rewrite i = refl
 ∉-⇒αβ {x} {ƛ y s} {ƛ y t} e (lam x₁) | inj₂ i rewrite ∉-⇒αβ i x₁ | &&-ff (~ x =ℕ y) = refl
-
+-}
 {-
 ⇒αβ-subst : ∀{s1 s2 t1 t2 t : Tm}{y : V} → 
             Subst s1 y s2 t → 
@@ -90,9 +91,36 @@ varOk-tk{(ƛ x t1) · t2}{vs} sub ok =
       (isSublist-remove{eq = _≃_}{fvs t1}{vs}{x} (λ{x} → ≃-sym{x})
         ((isSublist-++1l{eq = _≃_}{remove _≃_ x (fvs t1)}{fvs t2}{vs} sub)))
       (&&-elim2{~ varmem x vs} (&&-elim1 ok)))
-    (substLem {!!})
+    (substLem (varapart-varsub {bvs (tk t1)} {bvs t1} {fvs (tk t2)} {fvs t2}
+                (varsub-bvs{t1}) (varsub-fvs{t2})
+                 (varapart-sym {fvs t2} {bvs t1}
+                  (varOk-Apart'{t1}{fvs t2}{x :: vs} (&&-elim2{~ varmem x vs} (&&-elim1 ok)) h))))
+ where h : varsub (fvs t2) (x :: vs) ≡ tt                  
+       h rewrite varsub-++{varrem x (fvs t1)}{fvs t2}{vs} = varsub-trans {fvs t2} {vs} {x :: vs} (&&-elim2 sub) (varsub-++2a{[ x ]}{vs})
+
 varOk-tk{ƛ x t}{vs} sub ok =
  lam (varOk-tk {t} {x :: vs} (isSublist-remove{eq = _≃_}{fvs t}{vs}{x} (λ{x} → ≃-sym{x}) sub) (&&-elim2 ok))
+
+
+{--------------------------------------------------------------------------------
+ - Main theorem 1:
+
+   Any term's α-canonization can be completely developed.
+ -
+ --------------------------------------------------------------------------------}
+⇒αtk : ∀{t : Tm} →
+       let a = αcanon t in
+        a ⟨ ⇒αβ ⟩ tk a 
+⇒αtk{t} = varOk-tk h2 (αc-varOk{t} h)
+ where h : varsub (fvs t) (domr (diagonal (fvs t))) ≡ tt
+       h rewrite domr-diag{fvs t} = varsub-refl{fvs t}
+       hi : varsub (fvs t) (domr (diagonal (fvs t))) ≡ tt
+       hi rewrite domr-diag{fvs t} = varsub-refl{fvs t}
+       h2 : varsub (fvs (αcanon t)) (ranr (diagonal (fvs t))) ≡ tt
+       h2 with fvs-αc{t}{diagonal (fvs t)} hi 
+       h2 | u rewrite ranr-diag{fvs t} = u
+
+
 
 triangle-⇒αβ : ∀{s t t' : Tm}{ρ : Renaming} →
                 s ⟨ ⇒αβ ⟩ t →

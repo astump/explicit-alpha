@@ -28,6 +28,7 @@ data Subst : Tm → V → Tm → Tm → Set where
              v ∈ (ƛ x s) ≡ ff →
              Subst t v (ƛ x s) (ƛ x s)
 
+{-
 ∉-Subst : ∀{x y : V}{t1 t2 r : Tm} →
           x ∈ t1 ≡ ff →
           x ∈ t2 ≡ ff →
@@ -79,6 +80,8 @@ Apart-rename {s} {ƛ z t} {ƛ z r} {y} {y'} apart (lam-go x x₁ su) with &&-eli
 Apart-rename {s} {ƛ z t} {ƛ z r} {y} {y'} apart (lam-go x x₁ su) | p1 , p2 rewrite p1 = Apart-rename{s} p2 su
 Apart-rename {s} {ƛ z t} {ƛ z t} {y} {y'} apart (lam-stop x) = apart
 
+-}
+
 substLem : ∀{t s : Tm}{x : V} →
            Apart t (bvs s) ≡ tt → 
            Subst t x s (graft1 t x s)
@@ -89,10 +92,12 @@ substLem {t} {t1 · t2} {x} ap = app (substLem {t} {t1} {x} (Apart-++1{t}{bvs t1
                                     (substLem {t} {t2} {x} (Apart-++2{t}{bvs t1}{bvs t2} ap))
 substLem {t} {ƛ y t1}  {x} ap with keep (x ≃ y)
 substLem {t} {ƛ y t1}  {x} ap | tt , eq rewrite eq | graft-[]{t1} = lam-stop h
- where h : ~ x ≃ y && x ∈ t1 ≡ ff
-       h rewrite eq = refl
+ where h : x ∈ ƛ y t1 ≡ ff
+       h rewrite ≃-≡{x} eq = varmem-remove-same{y}{fvs t1}
 substLem {t} {ƛ y t1}  {x} ap | ff , eq rewrite eq with keep (x ∈ t1)
-substLem {t} {ƛ y t1}  {x} ap | ff , eq | tt , eq' =
-  lam-go (&&-intro{~ x ≃ y} (~-≡-ff eq) eq') (~-≡-tt (&&-elim1 ap)) (substLem{t}{t1}{x} (&&-elim2 ap))
-substLem {t} {ƛ y t1}  {x} ap | ff , eq | ff , eq' rewrite graft-~∈{x}{t}{t1} eq' = lam-stop (&&-ff-intro2{~ x ≃ y} eq')
+substLem {t} {ƛ y t1}  {x} ap | ff , eq | tt , eq' = lam-go h (~-≡-tt{varmem y (fvs t)} (&&-elim1 ap)) (substLem{t}{t1}{x} (&&-elim2 ap))
+  where h : x ∈ ƛ y t1 ≡ tt
+        h = varmem-remove3{x}{y}{fvs t1} eq eq'
+--  lam-go (&&-intro{~ x ≃ y} (~-≡-ff eq) eq') (~-≡-tt (&&-elim1 ap)) (substLem{t}{t1}{x} (&&-elim2 ap))
+substLem {t} {ƛ y t1}  {x} ap | ff , eq | ff , eq' rewrite graft-~∈{x}{t}{t1} eq' = lam-stop (varmem-remove4{x}{y}{fvs t1} eq eq')
 
