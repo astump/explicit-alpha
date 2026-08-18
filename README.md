@@ -1,4 +1,4 @@
-# Formalizing lambda calculus with explicit alpha-steps, in Agda
+# Lambda calculus with explicit alpha-steps, in Agda
 
 In this repo, I using Agda to develop some of the theory of lambda calculus using a version of Church's original system, where renaming bound variables is done with explicit steps.  (The name alpha to describe those steps arose later.)
 
