@@ -50,7 +50,7 @@ varOk-tk{var x · t}{vs} sub ok = app var (varOk-tk{t}{vs} (isSublist-++2l{eq = 
 varOk-tk{t1 · t2 · t3}{vs} sub ok =
  app (varOk-tk{t1 · t2}{vs} (isSublist-++1l{eq = _≃_}{fvs t1 ++ fvs t2}{fvs t3}{vs} sub) (&&-elim1 ok))
      (varOk-tk{t3}{vs} ((isSublist-++2l{eq = _≃_}{fvs t1 ++ fvs t2}{fvs t3}{vs} sub)) (&&-elim2 ok))
-varOk-tk{(ƛ x t1) · t2}{vs} sub ok =
+varOk-tk{(ƛ x t1) · t2}{vs} sub ok = 
   beta {t2} {x} {t1} {tk t2} {tk t1}
     (varOk-tk {t2} {vs} (isSublist-++2l{eq = _≃_}{remove _≃_ x (fvs t1)}{fvs t2}{vs} sub)
        (&&-elim2 ok))
@@ -67,7 +67,6 @@ varOk-tk{(ƛ x t1) · t2}{vs} sub ok =
 
 varOk-tk{ƛ x t}{vs} sub ok =
  lam (varOk-tk {t} {x :: vs} (isSublist-remove{eq = _≃_}{fvs t}{vs}{x} (λ{x} → ≃-sym{x}) sub) (&&-elim2 ok))
-
 
 {--------------------------------------------------------------------------------
  - Main theorem 1:

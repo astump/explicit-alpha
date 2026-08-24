@@ -49,3 +49,11 @@ varsub-bvs{(ƛ x t1) · t2} = varsub-trans {bvs (graft1 (tk t2) x (tk t1))} {bvs
                                   (varsub-bvs{t1}) (varsub-bvs{t2})))
                              (varsub-++2a{[ x ]}{bvs t1 ++ bvs t2})
 varsub-bvs{ƛ x t1} = varsub-++-cong{[ x ]}{bvs (tk t1)}{bvs t1} (varsub-bvs{t1})
+
+sd : Tm → Tm
+sd (var x) = var x
+sd (t1 · t2) with sd t1
+sd (t1 · t2) | ƛ x t1' = graft1 (sd t2) x t1'
+sd (t1 · t2) | var x = var x · (sd t2)
+sd (t1 · t2) | ta · tb = ta · tb · (sd t2)
+sd (ƛ x t) = ƛ x (sd t)
