@@ -35,7 +35,6 @@ data ⇒αβ : 𝔹 → Tm → Tm → Set where
         t ⟨ ⇒αβ b ⟩ t' →
         ƛ x t ⟨ ⇒αβ b ⟩ ƛ x t'
 
-
 ⇒αβ-refl : ∀{t : Tm} → t ⟨ ⇒αβ tt ⟩ t
 ⇒αβ-refl {var x} = var
 ⇒αβ-refl {t · t₁} = app ⇒αβ-refl ⇒αβ-refl
