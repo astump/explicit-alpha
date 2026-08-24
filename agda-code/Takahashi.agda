@@ -50,6 +50,7 @@ varsub-bvs{(ƛ x t1) · t2} = varsub-trans {bvs (graft1 (tk t2) x (tk t1))} {bvs
                              (varsub-++2a{[ x ]}{bvs t1 ++ bvs t2})
 varsub-bvs{ƛ x t1} = varsub-++-cong{[ x ]}{bvs (tk t1)}{bvs t1} (varsub-bvs{t1})
 
+-- a related function, for computing the superdevelopment of t
 sd : Tm → Tm
 sd (var x) = var x
 sd (t1 · t2) with sd t1
