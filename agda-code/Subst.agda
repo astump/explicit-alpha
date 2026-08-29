@@ -1,4 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
 open import lib
 open import VarInterface
 
@@ -47,3 +46,22 @@ substLem {t} {ƛ y t1}  {x} ap | ff , eq | tt , eq' = lam-go h (~-≡-tt{varmem 
 --  lam-go (&&-intro{~ x ≃ y} (~-≡-ff eq) eq') (~-≡-tt (&&-elim1 ap)) (substLem{t}{t1}{x} (&&-elim2 ap))
 substLem {t} {ƛ y t1}  {x} ap | ff , eq | ff , eq' rewrite graft-~∈{x}{t}{t1} eq' = lam-stop (varmem-remove4{x}{y}{fvs t1} eq eq')
 
+subst-bvs : ∀{t1 t2 t : Tm}{x : V} →
+            Subst t1 x t2 t →
+            varsub (bvs t) (bvs t1 ++ bvs t2) ≡ tt
+subst-bvs {t1} {var x} {t} {x} var-found rewrite ++[] (bvs t1) = varsub-refl {bvs t1}
+subst-bvs {t1} {var y} {t} {x} (var-not x₂) = refl
+subst-bvs {t1} {ta · tb} {ta' · tb'} {x} (app sb1 sb2) =
+ varsub-++il {bvs ta'} {bvs tb'} {bvs t1 ++ bvs ta ++ bvs tb}
+   h (varsub-trans {bvs tb'} {bvs t1 ++ bvs tb}
+       {bvs t1 ++ bvs ta ++ bvs tb} (subst-bvs{t1}{tb}{tb'} sb2)
+       (varsub-++-cong {bvs t1} {bvs tb} {bvs ta ++ bvs tb} (varsub-++2a{bvs ta}{bvs tb})))
+ where h : varsub (bvs ta') (bvs t1 ++ bvs ta ++ bvs tb) ≡ tt
+       h rewrite sym (++-assoc (bvs t1)(bvs ta)(bvs tb)) = varsub-++3 {bvs ta'} {bvs t1 ++ bvs ta} {bvs tb} (subst-bvs{t1}{ta}{ta'}{x} sb1)
+subst-bvs {t1} {ƛ y t2} {ƛ y t} {x} (lam-go x₂ x₃ sb) =
+  varsub-++il {[ y ]} {bvs t} {bvs t1 ++ y :: bvs t2}
+    (varsub-++2 {bvs t1} {[ y ]} {y :: bvs t2} (varsub-++1{[ y ]}{bvs t2}))
+      (varsub-trans {bvs t} {bvs t1 ++ bvs t2} {bvs t1 ++ y :: bvs t2} 
+        (subst-bvs{t1}{t2}{t}{x} sb)
+        (varsub-++-cong {bvs t1} {bvs t2} {y :: bvs t2} (varsub-++2a{[ y ]}{bvs t2})))
+subst-bvs {t1} {ƛ y t2} {t} {x} (lam-stop x₂) = varsub-++2a{bvs t1}{y :: bvs t2}

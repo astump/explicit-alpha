@@ -4,7 +4,6 @@ open import VarInterface
 
 module Tau where
 
-open import Ctxt 
 open import Tm 
 
 data τ(r : Rel Tm) : Rel Tm where
@@ -39,3 +38,4 @@ data τ(r : Rel Tm) : Rel Tm where
 ⋆lam ⋆refl = ⋆refl
 ⋆lam (⋆base p) = ⋆base (τ-lam p)
 ⋆lam (p1 ⋆trans p2) = (⋆lam p1) ⋆trans (⋆lam p2)
+
