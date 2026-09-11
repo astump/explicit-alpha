@@ -226,6 +226,16 @@ varmem-remove2 : ∀{x y : V}{l : 𝕃 V} →
                  x ≃ y ≡ tt ∨ varmem x l ≡ ff
 varmem-remove2{x}{y}{l} = list-member-remove2{V}{_≃_}{x}{y}{l} ≃-≡
 
+varmem-remove2a : ∀{x y : V}{l : 𝕃 V} →
+                 varmem x (varrem y l) ≡ ff →
+                 x ≃ y ≡ tt ∨ (x ≃ y ≡ ff ∧ varmem x l ≡ ff)
+varmem-remove2a{x}{y}{l} u with keep (x ≃ y)
+varmem-remove2a{x}{y}{l} u | tt , eq = inj₁ eq
+varmem-remove2a{x}{y}{l} u | ff , eq with varmem-remove2{x}{y}{l} u
+varmem-remove2a{x}{y}{l} u | ff , eq | inj₁ i rewrite i with eq 
+varmem-remove2a{x}{y}{l} u | ff , eq | inj₁ i | () 
+varmem-remove2a{x}{y}{l} u | ff , eq | inj₂ i = inj₂ (eq , i)
+
 varmem-remove3 : ∀{x y : V}{l : 𝕃 V} →
                  x ≃ y ≡ ff →
                  varmem x l ≡ tt →

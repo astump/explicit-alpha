@@ -65,3 +65,24 @@ subst-bvs {t1} {ƛ y t2} {ƛ y t} {x} (lam-go x₂ x₃ sb) =
         (subst-bvs{t1}{t2}{t}{x} sb)
         (varsub-++-cong {bvs t1} {bvs t2} {y :: bvs t2} (varsub-++2a{[ y ]}{bvs t2})))
 subst-bvs {t1} {ƛ y t2} {t} {x} (lam-stop x₂) = varsub-++2a{bvs t1}{y :: bvs t2}
+
+Subst-det : ∀{t1 t2 ra rb : Tm}{y : V} →
+            Subst t1 y t2 ra →
+            Subst t1 y t2 rb →
+            ra ≡ rb
+Subst-det {t1} {var x} {ra} {rb} {y} var-found var-found = refl
+Subst-det {t1} {var x} {ra} {rb} {y} var-found (var-not x₁) rewrite ≃-refl{x} with x₁ 
+Subst-det {t1} {var x} {ra} {rb} {y} var-found (var-not x₁) | ()
+Subst-det {t1} {var x} {ra} {rb} {y} (var-not x₁) var-found rewrite ≃-refl{x} with x₁ 
+Subst-det {t1} {var x} {ra} {rb} {y} (var-not x₁) var-found | ()
+Subst-det {t1} {var x} {ra} {rb} {y} (var-not x₁) (var-not x₂) = refl
+Subst-det {t1} {ta · tb} {ta1 · tb1} {ta2 · tb2} {y} (app sba1 sba2) (app sbb1 sbb2)
+ rewrite Subst-det{t1}{ta}{ta1}{ta2}{y} sba1 sbb1 | Subst-det{t1}{tb}{tb1}{tb2}{y} sba2 sbb2
+ = refl
+Subst-det {t1} {ƛ x t2} {ƛ x ra} {ƛ x rb} {y} (lam-go x₁ x₂ sb1) (lam-go x₃ x₄ sb2)
+ rewrite Subst-det{t1}{t2}{ra}{rb}{y} sb1 sb2 = refl
+Subst-det {t1} {ƛ x t2} {ƛ x ra} {rb} {y} (lam-go x₁ x₂ sb1) (lam-stop x₃) rewrite x₁ with x₃ 
+Subst-det {t1} {ƛ x t2} {ƛ x ra} {rb} {y} (lam-go x₁ x₂ sb1) (lam-stop x₃) | ()
+Subst-det {t1} {ƛ x t2} {ƛ x t2} {rb} {y} (lam-stop x₁) (lam-go x₂ x₃ sb2) rewrite x₁ with x₂ 
+Subst-det {t1} {ƛ x t2} {ƛ x t2} {rb} {y} (lam-stop x₁) (lam-go x₂ x₃ sb2) | ()
+Subst-det {t1} {ƛ x t2} {ƛ x t2} {rb} {y} (lam-stop x₁) (lam-stop x₂) = refl

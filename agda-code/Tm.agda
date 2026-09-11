@@ -14,7 +14,7 @@ infixl 8 ƛ
 fvs : Tm → 𝕃 V
 fvs (var x) = [ x ]
 fvs (t1 · t2) = fvs t1 ++ fvs t2
-fvs (ƛ x t) = remove _≃_ x (fvs t)
+fvs (ƛ x t) = varrem x (fvs t)
 
 infix 8 _∈_
 
@@ -44,6 +44,10 @@ bvs (ƛ x t) = x :: bvs t
      x ≃ y ≡ ff ∧ x ∈ t ≡ tt 
 ∈ƛ{x}{y}{t} u = varmem-remove{x}{y}{fvs t} u
 
+∈ƛff : ∀{x y : V}{t : Tm} →
+     x ∈ ƛ y t ≡ ff →
+     x ≃ y ≡ tt ∨ x ∈ t ≡ ff
+∈ƛff{x}{y}{t} u = varmem-remove2{x}{y}{fvs t} u
 
 ∈ƛ· : ∀{x y : V}{t1 t2 : Tm} →
      x ∈ ƛ y (t1 · t2) ≡ ff → 

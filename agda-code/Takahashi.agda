@@ -10,6 +10,7 @@ open import VarInterface
 module Takahashi where
 
 open import Tm 
+open import Renaming
 open import Substitution
 open import AlphaCanon
 

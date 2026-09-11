@@ -58,20 +58,6 @@ subst-Apart σ Γ = list-all (λ p → Apart (snd p) Γ) σ
 dom : Substitution → 𝕃 V
 dom = map fst
 
-Renaming : Set
-Renaming = 𝕃 (V × V)
-
-domr : Renaming → 𝕃 V 
-domr = map fst
-
-ranr : Renaming → 𝕃 V 
-ranr = map snd
-
-idempotentr : Renaming → 𝔹
-idempotentr ρ = list-all (λ v → ~ list-member _≃_ v (ranr ρ)) (domr ρ)
-
-↑ : Renaming → Substitution
-↑ = map (λ p → fst p , var (snd p))
 
 -- the free variables in the range are apart from the domain of the substitution
 idempotent : Substitution → 𝔹

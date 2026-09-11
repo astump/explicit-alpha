@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 open import lib hiding (_>>=_ ; return ; _∘_)
 open import relations
 open import diamond

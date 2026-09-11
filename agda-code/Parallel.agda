@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 {- definition of parallel reduction
 -}
 open import lib
@@ -12,6 +13,8 @@ open import Tm
 open import Subst
 open import Apart
 open import Renaming
+open import Alpha
+open import Substitution hiding (_\\_)
 open import AlphaCanon
 open import Takahashi 
 
@@ -19,25 +22,25 @@ open import Takahashi
 
    The boolean tells whether or not this is alpha-free -}
 data ⇒αβ : 𝔹 → Tm → Tm → Set where
-  var : ∀{v : V} → 
-          var v ⟨ ⇒αβ tt ⟩ var v
+  var : ∀{v : V}{b : 𝔹} → 
+          var v ⟨ ⇒αβ b ⟩ var v
   app : ∀{t1 t2 t1' t2' : Tm}{b1 b2 : 𝔹} →
-        t1 ⟨ ⇒αβ b1 ⟩ t1' →
-        t2 ⟨ ⇒αβ b2 ⟩ t2' →
+        (d1 : t1 ⟨ ⇒αβ b1 ⟩ t1') →
+        (d2 : t2 ⟨ ⇒αβ b2 ⟩ t2') →
         t1 · t2 ⟨ ⇒αβ (b1 && b2) ⟩ t1' · t2'
   beta : ∀{t1 : Tm}{x : V}{t2 : Tm}{t1' t2' r : Tm}{b1 b2 : 𝔹} →
-         t1 ⟨ ⇒αβ b1 ⟩ t1' →
-         t2 ⟨ ⇒αβ b2 ⟩ (ƛ x t2') →        
-         Subst t1' x t2' r → 
-         t2 · t1 ⟨ ⇒αβ (b1 && b2) ⟩ r
+         (d1 : t1 ⟨ ⇒αβ b1 ⟩ t1') →
+         (d2 : t2 ⟨ ⇒αβ b2 ⟩ t2') →        
+         (sb : Subst t1' x t2' r) → 
+         (ƛ x t2) · t1 ⟨ ⇒αβ (b1 && b2) ⟩ r
   alpha : ∀{x x' : V}{t t' r : Tm}{b : 𝔹} →
-          x' ∈ t' ≡ ff →                              -- avoid capture
-          x ≃ x' ≡ ff → 
-          t ⟨ ⇒αβ b ⟩ t' →
-          Subst (var x') x t' r → 
+          (nf : x' ∈ t' ≡ ff) →                              -- avoid capture
+          (ne : x ≃ x' ≡ ff) → 
+          (d : t ⟨ ⇒αβ b ⟩ t') →
+          (sb : Subst (var x') x t' r) → 
           (ƛ x t) ⟨ ⇒αβ ff ⟩ (ƛ x' r)
   lam : ∀{t t' : Tm}{x : V}{b : 𝔹} →
-        t ⟨ ⇒αβ b ⟩ t' →
+        (d : t ⟨ ⇒αβ b ⟩ t') →
         ƛ x t ⟨ ⇒αβ b ⟩ ƛ x t'
 
 -- parallel reduction without alpha is reflexive
@@ -46,16 +49,39 @@ data ⇒αβ : 𝔹 → Tm → Tm → Set where
 ⇒αβ-refl {t · t₁} = app ⇒αβ-refl ⇒αβ-refl
 ⇒αβ-refl {ƛ x t} = lam ⇒αβ-refl
 
+⇒αβ-relax : ∀{s t : Tm}{b : 𝔹} →
+            b ≡ tt → 
+            s ⟨ ⇒αβ b ⟩ t →
+            s ⟨ ⇒αβ ff ⟩ t 
+⇒αβ-relax {var x} {t} u var = var
+⇒αβ-relax {s1 · s2} {t1 · t2} u (app{b1 = b1}{b2} x x₁) =
+ app {s1}{b1 = ff}{ff}
+   (⇒αβ-relax {s1} {t1} {b1} (&&-elim1 u) x)
+   (⇒αβ-relax {s2} {t2} {b2} (&&-elim2 u) x₁)
+⇒αβ-relax {s1 · s2} {t} u (beta{t1}{v}{t2}{t1'}{t2'}{t}{b1}{b2} x x₁ x₂) =
+ beta {x = v}{t1' = t1'}{t2'}{t} {ff} {ff}
+  (⇒αβ-relax{s2}{t1'} (&&-elim1 u) x) (⇒αβ-relax {t2} {t2'} (&&-elim2 u) x₁)
+  x₂
+⇒αβ-relax {ƛ x s} {ƛ x t} u (lam x₁) = lam (⇒αβ-relax{s}{t} u x₁)
+
+⇒αβ-relax' : ∀{s t : Tm}{b : 𝔹} →
+             s ⟨ ⇒αβ b ⟩ t →
+             s ⟨ ⇒αβ ff ⟩ t 
+⇒αβ-relax'{s}{t}{tt} = ⇒αβ-relax{s}{t}{tt} refl
+⇒αβ-relax'{s}{t}{ff} d = d
+
+
 {- parallel reduction without alpha-step implies multi-step beta-reduction -}
 ⇒αβ-β : ∀{s t : Tm}{b : 𝔹} →
          b ≡ tt → 
          s ⟨ ⇒αβ b ⟩ t →
          s ⟨ ↝β ⋆ ⟩ t
 ⇒αβ-β {var x} {var _} be var = ⋆refl
-⇒αβ-β {s1 · s2} {t} be (beta d1 d2 sb) =
-  ⋆app1 (⇒αβ-β{s1} (&&-elim2 be) d2) ⋆trans
+⇒αβ-β {(ƛ x s1) · s2} {t} be (beta d1 d2 sb) = 
+  ⋆app1 (⋆lam{x} (⇒αβ-β{s1} (&&-elim2 be) d2)) ⋆trans
   ⋆app2 (⇒αβ-β{s2} (&&-elim1 be) d1) ⋆trans
   ⋆base (τ-base sb)
+
 ⇒αβ-β {s1 · s2} {t1 · t2} be (app d1 d2) =
   ⋆app1 (⇒αβ-β{s1} (&&-elim1 be) d1) ⋆trans
   ⋆app2 (⇒αβ-β{s2} (&&-elim2 be) d2)
@@ -77,17 +103,18 @@ pathDistinct-tk{t1 · t2 · t3}{vs} sub ok =
  app (pathDistinct-tk{t1 · t2}{vs} (isSublist-++1l{eq = _≃_}{fvs t1 ++ fvs t2}{fvs t3}{vs} sub) (&&-elim1 ok))
      (pathDistinct-tk{t3}{vs} ((isSublist-++2l{eq = _≃_}{fvs t1 ++ fvs t2}{fvs t3}{vs} sub)) (&&-elim2 ok))
 pathDistinct-tk{(ƛ x t1) · t2}{vs} sub ok =
-  beta {t2} {x} {ƛ x t1} {tk t2} {tk t1}{b1 = tt}{tt}
-   (pathDistinct-tk {t2} {vs} (isSublist-++2l{eq = _≃_}{remove _≃_ x (fvs t1)}{fvs t2}{vs} sub)
-       (&&-elim2 ok))
-   (lam (pathDistinct-tk {t1} {x :: vs}
-      (isSublist-remove{eq = _≃_}{fvs t1}{vs}{x} (λ{x} → ≃-sym{x})
+  let p = &&-elim2{~ varmem x vs} (&&-elim1 ok) in
+   beta {t2} {x} {t1} {tk t2} {tk t1} {graft1 (tk t2) x (tk t1)} {tt} {tt}
+    (pathDistinct-tk {t2} {vs}
+      (isSublist-++2l{eq = _≃_}{remove _≃_ x (fvs t1)}{fvs t2}{vs} sub)
+      (&&-elim2 ok))
+    (pathDistinct-tk {t1} {x :: vs} (isSublist-remove{eq = _≃_}{fvs t1}{vs}{x} (λ{x} → ≃-sym{x})
         ((isSublist-++1l{eq = _≃_}{remove _≃_ x (fvs t1)}{fvs t2}{vs} sub)))
-      (&&-elim2{~ varmem x vs} (&&-elim1 ok))))
-   (substLem (varapart-varsub {bvs (tk t1)} {bvs t1} {fvs (tk t2)} {fvs t2}
+        p)
+    (substLem (varapart-varsub {bvs (tk t1)} {bvs t1} {fvs (tk t2)} {fvs t2}
                 (varsub-bvs-tk{t1}) (varsub-fvs-tk{t2})
                  (varapart-sym {fvs t2} {bvs t1}
-                  (pathDistinct-Apart'{t1}{fvs t2}{x :: vs} (&&-elim2{~ varmem x vs} (&&-elim1 ok)) h))))
+                  (pathDistinct-Apart'{t1}{fvs t2}{x :: vs} p h))))
  where h : varsub (fvs t2) (x :: vs) ≡ tt                  
        h rewrite varsub-++{varrem x (fvs t1)}{fvs t2}{vs} =
          varsub-trans {fvs t2} {vs} {x :: vs} (&&-elim2 sub) (varsub-++2a{[ x ]}{vs})
@@ -129,65 +156,6 @@ pathDistinct-tk{ƛ x t}{vs} sub ok =
          t ⟨ ↝β ⋆ ⟩ tk t
 ↝β-tk{t}{vs} sb di = ⇒αβ-β refl (pathDistinct-tk{t}{vs} sb di)
 
-{- Terms that are path distinct with respect to a set vs including the free variables of t
-   parallel reduce to their complete superdevelopments, without alpha steps -}
-pathDistinct-sd : ∀{t : Tm}{vs : 𝕃 V} →
-           varsub (fvs t) vs ≡ tt → 
-           pathDistinct vs t ≡ tt →
-           t ⟨ ⇒αβ tt ⟩ (sd t)
-pathDistinct-sd {var x} {vs} sub ok = var
-pathDistinct-sd {t1 · t2} {vs} sub ok
- with keep (sd t1)
-    | (pathDistinct-sd{t1}{vs} (varsub-++1l{fvs t1}{fvs t2}{vs} sub) (&&-elim1 ok)) 
-    | (pathDistinct-sd{t2}{vs} (varsub-++2l{fvs t1}{fvs t2}{vs} sub) (&&-elim2 ok))
-pathDistinct-sd {t1 · t2} {vs} sub ok | ƛ x t1' , eq | d1 | d2 rewrite eq =
-  beta{t2}{x}{t1}{sd t2}{t1'}{b1 = tt}{tt}
-    (pathDistinct-sd {t2} {vs} (varsub-++2l{fvs t1}{fvs t2}{vs} sub) (&&-elim2 ok)) d1
-   (substLem
-      (varapart-varsub {bvs t1'} {bvs t1} {fvs (sd t2)} {fvs t2}
-        h1
-        (varsub-fvs-sd{t2})
-        (varapart-sym {fvs t2} {bvs t1}
-          (pathDistinct-Apart' {t1} {fvs t2} {vs}
-            (&&-elim1 ok) (varsub-++2l{fvs t1}{fvs t2}{vs} sub)))))
- where h1 : varsub (bvs t1') (bvs t1) ≡ tt
-       h1 with varsub-bvs-sd{t1} 
-       h1 | q rewrite eq = &&-elim2 q
-pathDistinct-sd {t1 · t2} {vs} sub ok | var x , eq | d1 | d2 rewrite eq | sym eq = app d1 d2
-pathDistinct-sd {t1 · t2} {vs} sub ok | ta · tb , eq | d1 | d2 rewrite eq | sym eq = app d1 d2
-pathDistinct-sd {ƛ x t} {vs} sub ok =
- lam (pathDistinct-sd {t} {x :: vs} (isSublist-remove{eq = _≃_}{fvs t}{vs}{x} (λ{x} → ≃-sym{x}) sub) (&&-elim2 ok))
-
-{--------------------------------------------------------------------------------
- - Improved version of main theorem 1:
-
-   Any term's α-canonization can be supercompletely developed, without alpha-steps.
-
-   This version uses superdevelopments instead of developments.
- -
- --------------------------------------------------------------------------------}
-⇒αsd : ∀{t : Tm} →
-       let a = αcanon t in
-        a ⟨ ⇒αβ tt ⟩ sd a 
-⇒αsd{t} = pathDistinct-sd h2 (αc-pathDistinct{t} h)
- where h : varsub (fvs t) (domr (diagonal (fvs t))) ≡ tt
-       h rewrite domr-diag{fvs t} = varsub-refl{fvs t}
-       hi : varsub (fvs t) (domr (diagonal (fvs t))) ≡ tt
-       hi rewrite domr-diag{fvs t} = varsub-refl{fvs t}
-       h2 : varsub (fvs (αcanon t)) (ranr (diagonal (fvs t))) ≡ tt
-       h2 with fvs-αc{t}{diagonal (fvs t)} hi 
-       h2 | u rewrite ranr-diag{fvs t} = u
-
-{--------------------------------------------------------------------------------
-- Corollary
-
-  The alpha-canonization of t reduces with beta-steps to its complete superdevelopment.
--
---------------------------------------------------------------------------------}
-↝β-αsd : ∀{t : Tm} →
-         let a = αcanon t in
-         a ⟨ ↝β ⋆ ⟩ sd a
-↝β-αsd{t} = ⇒αβ-β refl (⇒αsd{t})
 
 {- If
 
@@ -208,15 +176,18 @@ pathDistinct-sd {ƛ x t} {vs} sub ok =
 ⇒αβ-all-to-path {s1 · s2} {t1 · t2}{_}{vs} beq ad (app{b1 = b1}{b2} d1 d2)
   rewrite ⇒αβ-all-to-path{s1}{t1}{b1}{vs} (&&-elim1 beq) (allDistinct-app1{s1}{s2}{vs} ad) d1 =
   ⇒αβ-all-to-path{s2}{t2}{b2}{vs} (&&-elim2 beq) (allDistinct-app2{s1}{s2}{vs} ad) d2
-⇒αβ-all-to-path {s1 · s2} {t}{_}{vs} beq ad (beta{x = x}{t1' = t2'}{t1'}{b1 = b1}{b2} d1 d2 sb) rewrite &&-elim1{b1} beq | &&-elim2{b1} beq =
- pathDistinct-Subst {t2'} {t1'} {t} {x} {[]}{vs}
-  (⇒αβ-all-to-path {s2} {t2'} {tt} {vs} refl (allDistinct-app2{s1}{s2}{vs} ad) d1)
-  (&&-elim2{~ varmem x vs} (⇒αβ-all-to-path {s1} {ƛ x t1'} {tt} {vs} refl (allDistinct-app1{s1}{s2}{vs} ad) d2))
-  (varapart-varsub {bvs t2'} {bvs s2} {bvs t1'} {bvs s1} (⇒αβ-bvs d1)
-    (varsub-trans {bvs t1'} {x :: bvs t1'} {bvs s1} (varsub-++2a{[ x ]}{bvs t1'}) (⇒αβ-bvs d2))
-    (varapart-sym {bvs s1} {bvs s2}
-      (varunique-++-varapart {bvs s1} {bvs s2} (&&-elim1 ad))))
-  sb
+⇒αβ-all-to-path {(ƛ x s1) · s2} {t}{_}{vs} beq ad (beta{x = x}{t1' = t2'}{t1'}{b1 = b1}{b2} d1 d2 sb) rewrite &&-elim1{b1} beq | &&-elim2{b1} beq =
+  pathDistinct-Subst {t2'} {t1'} {t} {x} {[]} {vs}
+    (⇒αβ-all-to-path {s2} {t2'} {tt} {vs} refl (allDistinct-app2{ƛ x s1}{s2}{vs} ad) d1)
+    ((⇒αβ-all-to-path {s1} {t1'} {tt} {x :: vs} refl
+      (snd (allDistinct-lam{x}{s1}{vs} (allDistinct-app1{ƛ x s1}{s2}{vs} ad))) d2))
+    (varapart-varsub {bvs t2'} {bvs s2} {bvs t1'} {bvs s1} (⇒αβ-bvs d1)
+      (⇒αβ-bvs{s1}{t1'} d2)
+      (varapart-sym {bvs s1} {bvs s2}
+        (varunique-++-varapart {bvs s1} {bvs s2}
+          (&&-elim2{~ varmem x (bvs s1 ++ bvs s2)} (&&-elim1 ad)))))
+    sb
+
 ⇒αβ-all-to-path {ƛ x s} {ƛ y t}{_}{vs} beq ad (lam d) with allDistinct-lam{x}{s}{vs} ad 
 ⇒αβ-all-to-path {ƛ x s} {ƛ y t}{b}{vs} beq ad (lam d) | vm , ad' rewrite vm =
   ⇒αβ-all-to-path {s} {t} {b} {x :: vs} beq ad' d
@@ -231,6 +202,39 @@ pathDistinct-sd {ƛ x t} {vs} sub ok =
          allDistinct (fvs t) t ≡ tt →
          t ⟨ ↝β ⋆ ⟩ tk (tk t)
 ↝β-tk2{t} ad = ↝β-tk {t} {fvs t} (varsub-refl{fvs t}) (all-to-path{t} ad)
-               ⋆trans ↝β-tk {tk t} {fvs t} (varsub-fvs-tk{t})
-                        (⇒αβ-all-to-path {t} {tk t} {tt} {fvs t} refl ad
-                          (pathDistinct-tk{t}{fvs t} (varsub-refl{fvs t}) (all-to-path{t} ad)))
+               ⋆trans
+               ↝β-tk {tk t} {fvs t} (varsub-fvs-tk{t})
+                 (⇒αβ-all-to-path {t} {tk t} {tt} {fvs t} refl ad
+                   (pathDistinct-tk{t}{fvs t} (varsub-refl{fvs t}) (all-to-path{t} ad)))
+
+applyr-⇒αβ : ∀{r s : Tm}{ρ : Renaming}{b : 𝔹} →
+             pathDistinct (ranr ρ) s ≡ tt →
+             r ⟨ ⇒αβ b ⟩ s →
+             applyr ρ r ⟨ ⇒αβ b ⟩ applyr ρ s
+applyr-⇒αβ {r} {s} {ρ} {b} ap var = var
+applyr-⇒αβ {r} {s} {ρ} {b} ap (app d1 d2) = {!!}
+applyr-⇒αβ {r} {s} {ρ} {b} ap (beta d1 d2 sb) = {!!}
+applyr-⇒αβ {ƛ x r} {ƛ y s} {ρ} {ff} ap (alpha{t' = t'}{b = b'} nf ne d sb) =
+ alpha {x} {y} {applyr (ρ \\ x) r} {applyr (ρ \\ x) t'} {applyr (ρ \\ y) s} {b'}
+  (applyr-∈ {y} {ρ \\ x} {t'} h nf) ne (applyr-⇒αβ {r} {t'} {ρ \\ x} {b'} {!!} d) {!!}
+ where h : ~ varmem y (x :: ranr ρ) ≡ tt
+       h rewrite ~≃-sym{x} ne = &&-elim1 ap
+applyr-⇒αβ {ƛ x r} {ƛ x s} {ρ} {b} ap (lam d) = lam (applyr-⇒αβ{r}{s}{ρ \\ x} (&&-elim2 ap) d)
+
+Alpha-⇒αβ : ∀{ρ : Renaming}{r s t : Tm}{b : 𝔹} →
+            Alpha ρ r s →
+            s ⟨ ⇒αβ b ⟩ t →
+            applyr ρ r ⟨ ⇒αβ ff ⟩ t
+Alpha-⇒αβ {ρ} {r} {s} {t} {b} var var = var
+Alpha-⇒αβ {ρ} {r1 · r2} {s1 · s2} {t1 · t2} {b} (app h1 h2) (app{b1 = b1}{b2} d1 d2) =
+  app (Alpha-⇒αβ {ρ} {r1} {s1} {t1} {b1} h1 d1)
+      (Alpha-⇒αβ {ρ} {r2} {s2} {t2} {b2} h2 d2)
+Alpha-⇒αβ {ρ} {(ƛ y r1) · r2} {ƛ x s1 · s2} {t} {b} (app (lam nf ne h1) h2) (beta{t1' = t2}{t1}{b1 = b1}{b2} d1 d2 sb) =
+ beta{applyr ρ r2}{y}{applyr (ρ \\ y) r1}{t2}{applyr [ x , y ] t1}{t}{ff}{ff}
+    (Alpha-⇒αβ{ρ}{r2}{s2}{t2}{b1} h2 d1)
+    {!h!}
+    {!!} -- (Alpha-⇒αβ{ρ \\ y}{r1}{s1}{t1}{b2} {!!} d2) {!!}
+ where h : applyr (ρ \\ y) r1 ⟨ ⇒αβ ff ⟩ applyr [ x , y ] t1
+       h = {!!} 
+Alpha-⇒αβ {ρ} {r} {s} {t} {b} h (alpha x x₁ x₂ x₃) = {!!}
+Alpha-⇒αβ {ρ} {r} {s} {t} {b} h (lam x) = {!!}
