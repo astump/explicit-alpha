@@ -236,3 +236,23 @@ pathDistinct-Subst {t1} {ƛ y t2} {ƛ y t2} {x} {vs1} {vs2} pd1 pd2 ap (lam-stop
        h | inj₁ i | q = pathDistinct-collapse {x} {y} {[]} {vs1} {vs2} {t2} q i
        h | inj₂ i | q = pathDistinct-not-free{x}{y :: vs1}{vs2}{t2} (&&-elim2 pd2) i
 
+pathDistinct-Subst-var : ∀{x y : V}{vs : 𝕃 V}{r s : Tm} →
+                         y ∈ r ≡ ff → 
+                         pathDistinct (y :: vs) s ≡ tt →
+                         Subst (var y) x r s →
+                         pathDistinct (x :: vs) r ≡ tt 
+pathDistinct-Subst-var {x} {y} {vs} {var x} {var y} _ _ var-found rewrite ≃-refl{x} = refl
+pathDistinct-Subst-var {x} {y} {vs} {var z} {var z} ni pd (var-not ne)
+ rewrite ~≃-sym{x} ne | ||-ff (y ≃ z) with ||-elim{z ≃ y} pd
+pathDistinct-Subst-var {x} {y} {vs} {var z} {var z} ni pd (var-not ne) | inj₁ i rewrite ≃-≡{z} i | ≃-refl{y} with ni
+pathDistinct-Subst-var {x} {y} {vs} {var z} {var z} ni pd (var-not ne) | inj₁ i | ()
+pathDistinct-Subst-var {x} {y} {vs} {var z} {var z} ni pd (var-not ne) | inj₂ i = i
+pathDistinct-Subst-var {x} {y} {vs} {r1 · r2} {s1 · s2} ni pd (app sb1 sb2) rewrite varmem-++ y (fvs r1) (fvs r2)
+ rewrite pathDistinct-Subst-var{x}{y}{vs}{r1}{s1} (fst (||-≡-ff{y ∈ r1} ni)) (&&-elim1 pd) sb1 =
+ pathDistinct-Subst-var {x} {y} {vs} {r2} {s2}
+  (snd (||-≡-ff{y ∈ r1} ni)) (&&-elim2 pd) sb2
+pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z s} ni pd (lam-go x₁ x₂ sb) =
+  {!!} -- x can't be z because x ∈ ƛ z r
+pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z r} yni pd (lam-stop xni) with ∈ƛff{x}{z}{r} xni
+pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z r} yni pd (lam-stop xni) | inj₁ i rewrite ≃-≡{x} i = {!!}
+pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z r} yni pd (lam-stop xni) | inj₂ i = {!!}

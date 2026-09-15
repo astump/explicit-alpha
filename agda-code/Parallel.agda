@@ -1,4 +1,4 @@
-{-# OPTIONS --allow-unsolved-metas #-}
+-- {-# OPTIONS --allow-unsolved-metas #-}
 {- definition of parallel reduction
 -}
 open import lib
@@ -225,7 +225,7 @@ Alpha-⇒αβ : ∀{ρ : Renaming}{r s t : Tm}{b : 𝔹} →
             Alpha ρ r s →
             s ⟨ ⇒αβ b ⟩ t →
             applyr ρ r ⟨ ⇒αβ ff ⟩ t
-Alpha-⇒αβ {ρ} {r} {s} {t} {b} var var = var
+Alpha-⇒αβ {ρ} {r} {s} {t} {b} (var u) var rewrite u = var
 Alpha-⇒αβ {ρ} {r1 · r2} {s1 · s2} {t1 · t2} {b} (app h1 h2) (app{b1 = b1}{b2} d1 d2) =
   app (Alpha-⇒αβ {ρ} {r1} {s1} {t1} {b1} h1 d1)
       (Alpha-⇒αβ {ρ} {r2} {s2} {t2} {b2} h2 d2)

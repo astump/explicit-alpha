@@ -86,3 +86,39 @@ Subst-det {t1} {ƛ x t2} {ƛ x ra} {rb} {y} (lam-go x₁ x₂ sb1) (lam-stop x�
 Subst-det {t1} {ƛ x t2} {ƛ x t2} {rb} {y} (lam-stop x₁) (lam-go x₂ x₃ sb2) rewrite x₁ with x₂ 
 Subst-det {t1} {ƛ x t2} {ƛ x t2} {rb} {y} (lam-stop x₁) (lam-go x₂ x₃ sb2) | ()
 Subst-det {t1} {ƛ x t2} {ƛ x t2} {rb} {y} (lam-stop x₁) (lam-stop x₂) = refl
+
+Subst-not-found : ∀{r s t : Tm}{x : V} →
+                  Subst r x s t →
+                  varmem x (fvs s) ≡ ff →
+                  s ≡ t
+Subst-not-found {r} {var x} {t} {x} var-found m rewrite ≃-refl{x} with m
+Subst-not-found {r} {var x} {t} {x} var-found m | ()
+Subst-not-found {r} {var x₁} {t} {x} (var-not ne) m = refl
+Subst-not-found {r} {s1 · s2} {t1 · t2} {x} (app sb1 sb2) m
+  rewrite varmem-++ x (fvs s1) (fvs s2) | Subst-not-found{r}{s1}{t1}{x} sb1 (fst (||-≡-ff{varmem x (fvs s1)} m))
+                                        | Subst-not-found{r}{s2}{t2}{x} sb2 (snd (||-≡-ff{varmem x (fvs s1)} m))
+  = refl
+Subst-not-found {r} {ƛ y s} {ƛ y t} {x} (lam-go x₂ x₃ sb) m with ∈ƛ{x}{y}{s} x₂
+Subst-not-found {r} {ƛ y s} {ƛ y t} {x} (lam-go x₂ x₃ sb) m | p1 , _
+ rewrite varmem-remove-neq{x}{y}{fvs s} p1 | Subst-not-found{r}{s}{t}{x} sb m = refl
+Subst-not-found {r} {ƛ y s} {ƛ y t} {x} (lam-stop x₂) m = refl
+
+Subst-graft1 : ∀{r s1 s2 t1 t2 : Tm}{x y : V} →
+               x ≃ y ≡ ff →
+               varmem y (fvs r) ≡ ff → 
+               Subst r x s1 t1 →
+               Subst r x s2 t2 →
+               Subst r x (graft1 s1 y s2) (graft1 t1 y t2)
+--Subst-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} sb1 sb2 = {!!}
+Subst-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} ne vm sb1 var-found rewrite ne | graft-~∈{y}{t1}{r} vm = var-found
+Subst-graft1 {r} {s1} {var z} {t1} {var z} {x} {y} ne vm sb1 (var-not{x = z} x₁) with keep (z ≃ y)
+Subst-graft1 {r} {s1} {var z} {t1} {var z} {x} {y} ne vm sb1 (var-not{x = z} x₁) | tt , eq rewrite eq = sb1
+Subst-graft1 {r} {s1} {var z} {t1} {var z} {x} {y} ne vm sb1 (var-not{x = z} x₁) | ff , eq rewrite eq = var-not x₁
+Subst-graft1 {r} {s1} {s2a · s2b} {t1} {t2a · t2b} {x} {y} ne vm sb1 (app sb2a sb2b) =
+  app (Subst-graft1 {r} {s1} {s2a} {t1} {t2a} {x} {y} ne vm sb1 sb2a)
+      (Subst-graft1 {r} {s1} {s2b} {t1} {t2b} {x} {y} ne vm sb1 sb2b)
+Subst-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} ne vm sb1 (lam-go x₁ x₂ sb2) = {!!}
+Subst-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} ne vm sb1 (lam-stop{x = z} x₁) with keep (y ≃ z)
+Subst-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z s2} {x} {y} ne vm sb1 (lam-stop{x = z} x₁) | tt , eq
+ rewrite eq | graft-[]{s2} = lam-stop x₁
+Subst-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} ne vm sb1 (lam-stop{x = z} x₁) | ff , eq rewrite eq = {!!}

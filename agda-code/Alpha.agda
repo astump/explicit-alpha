@@ -12,8 +12,9 @@ open import Renaming
 open import Subst
 
 data Alpha : Renaming → Tm → Tm → Set where
-  var : ∀{v : V}{ρ : Renaming} → 
-         Alpha ρ (var v) (var (rename ρ v))
+  var : ∀{v v' : V}{ρ : Renaming} →
+         lookupr ρ v ≡ just v' → 
+         Alpha ρ (var v) (var v')
   app : ∀{t1 t2 t1' t2' : Tm}{ρ : Renaming} → 
          Alpha ρ t1 t1' →
          Alpha ρ t2 t2' →
