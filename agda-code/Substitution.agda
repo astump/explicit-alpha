@@ -113,6 +113,26 @@ subst-var-not-member : ∀{x : V}{σ : Substitution} →
                        subst-var σ x ≡ var x
 subst-var-not-member{x}{σ} sl = lookup-nothing{σ} (lookup-not-member{x}{σ} sl)
 
+graft-∈ : ∀{x y : V}{t t' : Tm} →
+          x ≃ y ≡ ff → 
+          x ∈ t' ≡ tt →
+          x ∈ (graft1 t y t') ≡ tt 
+graft-∈ {x} {y} {t} {var z} ne nn with keep (z ≃ y)
+graft-∈ {x} {y} {t} {var z} ne nn | tt , eq rewrite ≃-≡{z} eq | ne with nn
+graft-∈ {x} {y} {t} {var z} ne nn | tt , eq | ()
+graft-∈ {x} {y} {t} {var z} ne nn | ff , eq rewrite eq = nn
+graft-∈ {x} {y} {t} {t1 · t2} ne nn
+  rewrite varmem-++ x (fvs t1) (fvs t2) | varmem-++ x (fvs (graft1 t y t1)) (fvs (graft1 t y t2))
+  with ||-elim{varmem x (fvs t1)} nn 
+graft-∈ {x} {y} {t} {t1 · t2} ne nn | inj₁ i rewrite graft-∈{x}{y}{t}{t1} ne i = refl
+graft-∈ {x} {y} {t} {t1 · t2} ne nn | inj₂ i rewrite graft-∈{x}{y}{t}{t2} ne i = ||-tt (varmem x (fvs (graft1 t y t1)))
+graft-∈ {x} {y} {t} {ƛ z t1} ne nn with ∈ƛ{x}{z}{t1} nn | keep (y ≃ z)
+graft-∈ {x} {y} {t} {ƛ z t1} ne nn | i1 , i2 | tt , eq rewrite eq | graft-[] {t1}
+ = nn
+graft-∈ {x} {y} {t} {ƛ z t1} ne nn | i1 , i2 | ff , eq rewrite eq
+ = varmem-remove3 {x} {z} {fvs (graft1 t y t1)} i1 (graft-∈ {x} {y} {t} {t1} ne i2)
+
+
 graft-~∈ : ∀{x : V}{t t' : Tm} →
              x ∈ t' ≡ ff → 
              graft ((x , t) :: []) t' ≡ t'

@@ -129,7 +129,14 @@ Subst-var-tk {var z · s2} {var _ · r2} {x} {y} (app (var-not w) sb) =
 Subst-var-tk {s1 · s3 · s2} {r1 · r3 · r2} {x} {y} (app (app sb1 sb2) sb3) =
  app (Subst-var-tk{s1 · s3}{r1 · r3}{x}{y} (app sb1 sb2))
      (Subst-var-tk{s2}{r2}{x}{y} sb3)
-Subst-var-tk {ƛ z s1 · s2} {ƛ w r1 · r2} {x} {y} (app (lam-go x₃ x₄ sb) sb₁) = {!!}
+Subst-var-tk {ƛ z s1 · s2} {ƛ z r1 · r2} {x} {y} (app (lam-go x₃ x₄ sb) sb₁) =
+ let p = ∈ƛ{y}{z}{s1} x₃ in
+  {!!}
+{-  Subst-graft1 {var x} {tk s2} {tk s1} {tk r2} {tk r1} {y} {z}
+   {[ x ]} (fst p) (varsub-refl{[ x ]}) x₄ {!!}
+   (Subst-var-tk {s2} {r2} {x} {y} sb₁)
+   (Subst-var-tk {s1} {r1} {x} {y} sb)
+-}
 Subst-var-tk {ƛ z s1 · s2} {ƛ w r1 · r2} {x} {y} (app (lam-stop x₃) sb₁) = {!!}
 Subst-var-tk {ƛ z s} {ƛ z r} {x} {y} (lam-go w x₃ sb) with keep (y ∈ ƛ z (tk s))
 Subst-var-tk {ƛ z s} {ƛ z r} {x} {y} (lam-go w x₃ sb) | tt , eq = 

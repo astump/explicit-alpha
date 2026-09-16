@@ -253,6 +253,11 @@ varmem-remove-neq : ∀{x y : V}{l : 𝕃 V} →
                      varmem x (varrem y l) ≡ varmem x l
 varmem-remove-neq{x}{y}{l} = list-member-neq{V}{_≃_}{x}{y}{l} ≃-≡ (λ{x} → ≃-sym{x}) (λ{x} → ≃-refl{x})
 
+varrem-not-member : ∀{x : V}{l : 𝕃 V} →
+                    varmem x l ≡ ff →
+                    varrem x l ≡ l
+varrem-not-member{x}{l} m = remove-not-member1{V}{_≃_}{l}{x} (λ{x} → ≃-sym{x}) ≃-≡ m
+
 varmem-remove-same : ∀{x : V}{l : 𝕃 V} →
                      varmem x (varrem x l) ≡ ff
 varmem-remove-same{x}{l} = list-member-remove-same{V}{_≃_}{x}{l}

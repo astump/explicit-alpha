@@ -103,22 +103,11 @@ Subst-not-found {r} {ƛ y s} {ƛ y t} {x} (lam-go x₂ x₃ sb) m | p1 , _
  rewrite varmem-remove-neq{x}{y}{fvs s} p1 | Subst-not-found{r}{s}{t}{x} sb m = refl
 Subst-not-found {r} {ƛ y s} {ƛ y t} {x} (lam-stop x₂) m = refl
 
-Subst-graft1 : ∀{r s1 s2 t1 t2 : Tm}{x y : V} →
-               x ≃ y ≡ ff →
-               varmem y (fvs r) ≡ ff → 
-               Subst r x s1 t1 →
-               Subst r x s2 t2 →
-               Subst r x (graft1 s1 y s2) (graft1 t1 y t2)
---Subst-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} sb1 sb2 = {!!}
-Subst-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} ne vm sb1 var-found rewrite ne | graft-~∈{y}{t1}{r} vm = var-found
-Subst-graft1 {r} {s1} {var z} {t1} {var z} {x} {y} ne vm sb1 (var-not{x = z} x₁) with keep (z ≃ y)
-Subst-graft1 {r} {s1} {var z} {t1} {var z} {x} {y} ne vm sb1 (var-not{x = z} x₁) | tt , eq rewrite eq = sb1
-Subst-graft1 {r} {s1} {var z} {t1} {var z} {x} {y} ne vm sb1 (var-not{x = z} x₁) | ff , eq rewrite eq = var-not x₁
-Subst-graft1 {r} {s1} {s2a · s2b} {t1} {t2a · t2b} {x} {y} ne vm sb1 (app sb2a sb2b) =
-  app (Subst-graft1 {r} {s1} {s2a} {t1} {t2a} {x} {y} ne vm sb1 sb2a)
-      (Subst-graft1 {r} {s1} {s2b} {t1} {t2b} {x} {y} ne vm sb1 sb2b)
-Subst-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} ne vm sb1 (lam-go x₁ x₂ sb2) = {!!}
-Subst-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} ne vm sb1 (lam-stop{x = z} x₁) with keep (y ≃ z)
-Subst-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z s2} {x} {y} ne vm sb1 (lam-stop{x = z} x₁) | tt , eq
- rewrite eq | graft-[]{s2} = lam-stop x₁
-Subst-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} ne vm sb1 (lam-stop{x = z} x₁) | ff , eq rewrite eq = {!!}
+Subst-refl : ∀{r s : Tm}{x : V} →
+             varmem x (fvs s) ≡ ff →
+             Subst r x s s
+Subst-refl {r} {var y} {x} m = var-not (fst (||-≡-ff{x ≃ y} m))
+Subst-refl {r} {s1 · s2} {x} m rewrite varmem-++ x (fvs s1) (fvs s2) =
+  app (Subst-refl{r}{s1}{x} (fst (||-≡-ff{varmem x (fvs s1)} m)))
+      (Subst-refl{r}{s2}{x} (snd (||-≡-ff{varmem x (fvs s1)} m)))
+Subst-refl {r} {ƛ y s} {x} m = lam-stop m

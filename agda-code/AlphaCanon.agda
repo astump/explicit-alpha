@@ -9,6 +9,7 @@ module AlphaCanon where
 open import Tm 
 open import Renaming
 open import Subst
+open import Substitution
 
 αc : Tm → Renaming → Tm
 αc (var x) ρ = var (rename ρ x)
@@ -236,6 +237,52 @@ pathDistinct-Subst {t1} {ƛ y t2} {ƛ y t2} {x} {vs1} {vs2} pd1 pd2 ap (lam-stop
        h | inj₁ i | q = pathDistinct-collapse {x} {y} {[]} {vs1} {vs2} {t2} q i
        h | inj₂ i | q = pathDistinct-not-free{x}{y :: vs1}{vs2}{t2} (&&-elim2 pd2) i
 
+Subst-var-graft1 : ∀{r s1 s2 t1 t2 : Tm}{x y : V}{vs : 𝕃 V} →
+               x ≃ y ≡ ff →
+               varsub (fvs r) vs ≡ tt → 
+               varmem y vs ≡ ff → 
+               pathDistinct vs s2 ≡ tt → 
+               Subst r x s1 t1 →
+               Subst r x s2 t2 →
+               Subst r x (graft1 s1 y s2) (graft1 t1 y t2)
+--Subst-var-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} sb1 sb2 = {!!}
+Subst-var-graft1 {r} {s1} {s2} {t1} {t2} {x} {y}{vs} ne fr vm _ sb1 var-found
+ rewrite ne | graft-~∈{y}{t1}{r} (varmem-varsub-ff {y} {fvs r} {vs} fr vm) = var-found 
+Subst-var-graft1 {r} {s1} {var z} {t1} {var z} {x} {y} ne fr vm _ sb1 (var-not{x = z} x₁) with keep (z ≃ y)
+Subst-var-graft1 {r} {s1} {var z} {t1} {var z} {x} {y} ne fr vm _ sb1 (var-not{x = z} x₁) | tt , eq rewrite eq = sb1
+Subst-var-graft1 {r} {s1} {var z} {t1} {var z} {x} {y} ne fr vm _ sb1 (var-not{x = z} x₁) | ff , eq rewrite eq = var-not x₁
+Subst-var-graft1 {r} {s1} {s2a · s2b} {t1} {t2a · t2b} {x} {y}{vs} ne fr vm pd sb1 (app sb2a sb2b) =
+  app (Subst-var-graft1 {r} {s1} {s2a} {t1} {t2a} {x} {y} {vs} ne fr vm (&&-elim1 pd) sb1 sb2a)
+      (Subst-var-graft1 {r} {s1} {s2b} {t1} {t2b} {x} {y} {vs}ne fr vm (&&-elim2 pd) sb1 sb2b)
+Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z t2} {x} {y} ne fr vm pd sb1 (lam-go x₁ x₂ sb2) with keep (y ≃ z) 
+Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z t2} {x} {y} ne fr vm pd sb1 (lam-go x₁ x₂ sb2) | tt , eq
+  rewrite eq | graft-[] {s2} | graft-[] {t2} = lam-go x₁ x₂ sb2
+Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z t2} {x} {y}{vs} ne fr vm pd sb1 (lam-go x₁ x₂ sb2) | ff , eq rewrite eq
+  with varmem-remove{x}{z}{fvs s2} x₁
+Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z t2} {x} {y}{vs} ne fr vm pd sb1 (lam-go x₁ x₂ sb2) | ff , eq | p1 , p2
+  = lam-go (varmem-remove3 {x} {z} {fvs (graft1 s1 y s2)} p1 (graft-∈ {x} {y} {s1} {s2} ne p2)) x₂
+      (Subst-var-graft1 {r} {s1} {s2} {t1} {t2} {x} {y}{z :: vs} ne
+        (varsub-++2 {[ z ]} {fvs r} {vs} fr) h
+        (&&-elim2 pd) sb1 sb2)
+  where h : varmem y (z :: vs) ≡ ff
+        h rewrite eq = vm
+Subst-var-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} ne fr vm pd sb1 (lam-stop{x = z} x₁) with keep (y ≃ z)
+Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z s2} {x} {y} ne fr vm pd sb1 (lam-stop{x = z} x₁) | tt , eq
+ rewrite eq | graft-[]{s2} = lam-stop x₁
+Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z s2} {x} {y} ne fr vm pd sb1 (lam-stop{x = z} x₁) | ff , eq rewrite eq
+  with keep (varmem x (varrem z (fvs (graft1 s1 y s2))))
+Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z s2} {x} {y}{vs} ne fr vm pd sb1 (lam-stop{x = z} x₁) | ff , eq | tt , vm'
+ = lam-go vm' (varmem-varsub-ff {z} {fvs r} {vs} fr (~-≡-tt (&&-elim1 pd)))
+     (Subst-var-graft1 {r} {s1} {s2} {t1} {s2} {x} {y}{z :: vs} ne
+       (varsub-++2{[ z ]}{fvs r}{vs} fr) h
+       (&&-elim2 pd) sb1 (Subst-refl h'))
+ where h : varmem y (z :: vs) ≡ ff
+       h rewrite eq = vm
+       h' : varmem x (fvs s2) ≡ ff        
+       h' rewrite sym (varmem-remove-neq{x}{z}{fvs s2} (fst (varmem-remove{x}{z}{fvs (graft1 s1 y s2)} vm'))) = x₁
+Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z s2} {x} {y}{vs} ne fr vm pd sb1 (lam-stop{x = z} x₁) | ff , eq | ff , vm'
+ = {!!}  
+
 pathDistinct-Subst-var : ∀{x y : V}{vs : 𝕃 V}{r s : Tm} →
                          y ∈ r ≡ ff → 
                          pathDistinct (y :: vs) s ≡ tt →
@@ -256,3 +303,4 @@ pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z s} ni pd (lam-go x₁ x₂ sb
 pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z r} yni pd (lam-stop xni) with ∈ƛff{x}{z}{r} xni
 pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z r} yni pd (lam-stop xni) | inj₁ i rewrite ≃-≡{x} i = {!!}
 pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z r} yni pd (lam-stop xni) | inj₂ i = {!!}
+
