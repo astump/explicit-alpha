@@ -1,4 +1,4 @@
--- {-# OPTIONS --allow-unsolved-metas #-}
+{-# OPTIONS --allow-unsolved-metas #-}
 {- definition of parallel reduction
 -}
 open import lib
@@ -91,35 +91,31 @@ data ⇒αβ : 𝔹 → Tm → Tm → Set where
 ⇒αβ-bvs : preserves-set (⇒αβ tt) bvs _≃_
 ⇒αβ-bvs d = ↝β⋆-bvs (⇒αβ-β refl d) 
 
-{- Terms that are path distinct with respect to a set vs including the free variables of t
-   parallel reduce to their complete developments, without alpha steps -}
+{- Terms that are path distinct with respect to a set vs
+   reduce to their complete developments, without alpha steps -}
 pathDistinct-tk : ∀{t : Tm}{vs : 𝕃 V} →
-           varsub (fvs t) vs ≡ tt → 
            pathDistinct vs t ≡ tt →
            t ⟨ ⇒αβ tt ⟩ (tk t)
-pathDistinct-tk{var x}{vs} sub ok = var
-pathDistinct-tk{var x · t}{vs} sub ok = app var (pathDistinct-tk{t}{vs} (isSublist-++2l{eq = _≃_}{[ x ]}{fvs t}{vs} sub) (&&-elim2 ok))
-pathDistinct-tk{t1 · t2 · t3}{vs} sub ok =
- app (pathDistinct-tk{t1 · t2}{vs} (isSublist-++1l{eq = _≃_}{fvs t1 ++ fvs t2}{fvs t3}{vs} sub) (&&-elim1 ok))
-     (pathDistinct-tk{t3}{vs} ((isSublist-++2l{eq = _≃_}{fvs t1 ++ fvs t2}{fvs t3}{vs} sub)) (&&-elim2 ok))
-pathDistinct-tk{(ƛ x t1) · t2}{vs} sub ok =
+pathDistinct-tk{var x}{vs} ok = var
+pathDistinct-tk{var x · t}{vs} ok = app var (pathDistinct-tk{t}{vs} (&&-elim2 ok))
+pathDistinct-tk{t1 · t2 · t3}{vs} ok =
+ app (pathDistinct-tk{t1 · t2}{vs} (&&-elim1 ok))
+     (pathDistinct-tk{t3}{vs} (&&-elim2 ok))
+pathDistinct-tk{(ƛ x t1) · t2}{vs} ok =
   let p = &&-elim2{~ varmem x vs} (&&-elim1 ok) in
    beta {t2} {x} {t1} {tk t2} {tk t1} {graft1 (tk t2) x (tk t1)} {tt} {tt}
     (pathDistinct-tk {t2} {vs}
-      (isSublist-++2l{eq = _≃_}{remove _≃_ x (fvs t1)}{fvs t2}{vs} sub)
       (&&-elim2 ok))
-    (pathDistinct-tk {t1} {x :: vs} (isSublist-remove{eq = _≃_}{fvs t1}{vs}{x} (λ{x} → ≃-sym{x})
-        ((isSublist-++1l{eq = _≃_}{remove _≃_ x (fvs t1)}{fvs t2}{vs} sub)))
+    (pathDistinct-tk {t1} {x :: vs} 
         p)
     (substLem (varapart-varsub {bvs (tk t1)} {bvs t1} {fvs (tk t2)} {fvs t2}
                 (varsub-bvs-tk{t1}) (varsub-fvs-tk{t2})
                  (varapart-sym {fvs t2} {bvs t1}
                   (pathDistinct-Apart'{t1}{fvs t2}{x :: vs} p h))))
  where h : varsub (fvs t2) (x :: vs) ≡ tt                  
-       h rewrite varsub-++{varrem x (fvs t1)}{fvs t2}{vs} =
-         varsub-trans {fvs t2} {vs} {x :: vs} (&&-elim2 sub) (varsub-++2a{[ x ]}{vs})
-pathDistinct-tk{ƛ x t}{vs} sub ok =
- lam (pathDistinct-tk {t} {x :: vs} (isSublist-remove{eq = _≃_}{fvs t}{vs}{x} (λ{x} → ≃-sym{x}) sub) (&&-elim2 ok))
+       h = varsub-++2 {[ x ]} {fvs t2} {vs} (pathDistinct-fvs{t2}{vs} (&&-elim2 ok)) 
+pathDistinct-tk{ƛ x t}{vs} ok =
+ lam (pathDistinct-tk {t} {x :: vs} (&&-elim2 ok))
 
 {--------------------------------------------------------------------------------
  - Main theorem 1:
@@ -130,7 +126,7 @@ pathDistinct-tk{ƛ x t}{vs} sub ok =
 ⇒αtk : ∀{t : Tm} →
        let a = αcanon t in
         a ⟨ ⇒αβ tt ⟩ tk a 
-⇒αtk{t} = pathDistinct-tk h2 (αc-pathDistinct{t} h)
+⇒αtk{t} = pathDistinct-tk (αc-pathDistinct{t} h)
  where h : varsub (fvs t) (domr (diagonal (fvs t))) ≡ tt
        h rewrite domr-diag{fvs t} = varsub-refl{fvs t}
        hi : varsub (fvs t) (domr (diagonal (fvs t))) ≡ tt
@@ -154,7 +150,7 @@ pathDistinct-tk{ƛ x t}{vs} sub ok =
          varsub (fvs t) vs ≡ tt → 
          pathDistinct vs t ≡ tt →
          t ⟨ ↝β ⋆ ⟩ tk t
-↝β-tk{t}{vs} sb di = ⇒αβ-β refl (pathDistinct-tk{t}{vs} sb di)
+↝β-tk{t}{vs} sb di = ⇒αβ-β refl (pathDistinct-tk{t}{vs} di)
 
 
 {- If
@@ -205,36 +201,5 @@ pathDistinct-tk{ƛ x t}{vs} sub ok =
                ⋆trans
                ↝β-tk {tk t} {fvs t} (varsub-fvs-tk{t})
                  (⇒αβ-all-to-path {t} {tk t} {tt} {fvs t} refl ad
-                   (pathDistinct-tk{t}{fvs t} (varsub-refl{fvs t}) (all-to-path{t} ad)))
+                   (pathDistinct-tk{t}{fvs t} (all-to-path{t} ad)))
 
-applyr-⇒αβ : ∀{r s : Tm}{ρ : Renaming}{b : 𝔹} →
-             pathDistinct (ranr ρ) s ≡ tt →
-             r ⟨ ⇒αβ b ⟩ s →
-             applyr ρ r ⟨ ⇒αβ b ⟩ applyr ρ s
-applyr-⇒αβ {r} {s} {ρ} {b} ap var = var
-applyr-⇒αβ {r} {s} {ρ} {b} ap (app d1 d2) = {!!}
-applyr-⇒αβ {r} {s} {ρ} {b} ap (beta d1 d2 sb) = {!!}
-applyr-⇒αβ {ƛ x r} {ƛ y s} {ρ} {ff} ap (alpha{t' = t'}{b = b'} nf ne d sb) =
- alpha {x} {y} {applyr (ρ \\ x) r} {applyr (ρ \\ x) t'} {applyr (ρ \\ y) s} {b'}
-  (applyr-∈ {y} {ρ \\ x} {t'} h nf) ne (applyr-⇒αβ {r} {t'} {ρ \\ x} {b'} {!!} d) {!!}
- where h : ~ varmem y (x :: ranr ρ) ≡ tt
-       h rewrite ~≃-sym{x} ne = &&-elim1 ap
-applyr-⇒αβ {ƛ x r} {ƛ x s} {ρ} {b} ap (lam d) = lam (applyr-⇒αβ{r}{s}{ρ \\ x} (&&-elim2 ap) d)
-
-Alpha-⇒αβ : ∀{ρ : Renaming}{r s t : Tm}{b : 𝔹} →
-            Alpha ρ r s →
-            s ⟨ ⇒αβ b ⟩ t →
-            applyr ρ r ⟨ ⇒αβ ff ⟩ t
-Alpha-⇒αβ {ρ} {r} {s} {t} {b} (var u) var rewrite u = var
-Alpha-⇒αβ {ρ} {r1 · r2} {s1 · s2} {t1 · t2} {b} (app h1 h2) (app{b1 = b1}{b2} d1 d2) =
-  app (Alpha-⇒αβ {ρ} {r1} {s1} {t1} {b1} h1 d1)
-      (Alpha-⇒αβ {ρ} {r2} {s2} {t2} {b2} h2 d2)
-Alpha-⇒αβ {ρ} {(ƛ y r1) · r2} {ƛ x s1 · s2} {t} {b} (app (lam nf ne h1) h2) (beta{t1' = t2}{t1}{b1 = b1}{b2} d1 d2 sb) =
- beta{applyr ρ r2}{y}{applyr (ρ \\ y) r1}{t2}{applyr [ x , y ] t1}{t}{ff}{ff}
-    (Alpha-⇒αβ{ρ}{r2}{s2}{t2}{b1} h2 d1)
-    {!h!}
-    {!!} -- (Alpha-⇒αβ{ρ \\ y}{r1}{s1}{t1}{b2} {!!} d2) {!!}
- where h : applyr (ρ \\ y) r1 ⟨ ⇒αβ ff ⟩ applyr [ x , y ] t1
-       h = {!!} 
-Alpha-⇒αβ {ρ} {r} {s} {t} {b} h (alpha x x₁ x₂ x₃) = {!!}
-Alpha-⇒αβ {ρ} {r} {s} {t} {b} h (lam x) = {!!}

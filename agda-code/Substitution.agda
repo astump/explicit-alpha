@@ -231,3 +231,23 @@ bvs-graft {x} {ƛ y t1} {t} | ff rewrite ≃-refl{y} =
                 (bvs (graft1 t x t1))
                 (λ a → ||-intro2{a ≃ y})
                 (bvs-graft{x}{t1}{t})
+
+fvs-∈-graft : ∀{s1 s2 : Tm}{x y : V} →
+              x ∈ s1 ≡ tt →
+              y ∈ s2 ≡ tt →
+              varmem x (bvs s2) ≡ ff → 
+              x ∈ (graft1 s1 y s2) ≡ tt
+fvs-∈-graft {s1} {var z} {x} {y} u1 u2 u3 rewrite ||-ff (y ≃ z) | ≃-sym{y} u2 = u1
+fvs-∈-graft {s1} {sa · sb} {x} {y} u1 u2 u3
+ rewrite varmem-++ y (fvs sa) (fvs sb) | varmem-++ x (fvs (graft1 s1 y sa)) (fvs (graft1 s1 y sb))
+       | varmem-++ x (bvs sa) (bvs sb)
+ with ||-elim{varmem y (fvs sa)} u2 
+fvs-∈-graft {s1} {sa · sb} {x} {y} u1 u2 u3 | inj₁ i
+ rewrite fvs-∈-graft{s1}{sa}{x}{y} u1 i (fst (||-≡-ff{varmem x (bvs sa)} u3)) = refl
+fvs-∈-graft {s1} {sa · sb} {x} {y} u1 u2 u3 | inj₂ i
+ rewrite fvs-∈-graft{s1}{sb}{x}{y} u1 i (snd (||-≡-ff{varmem x (bvs sa)} u3))
+       | ||-tt (varmem x (fvs (graft1 s1 y sa))) = refl
+fvs-∈-graft {s1} {ƛ z s2} {x} {y} u1 u2 u3 with ∈ƛ{y}{z}{s2} u2
+fvs-∈-graft {s1} {ƛ z s2} {x} {y} u1 u2 u3 | ua , ub rewrite ua =
+ varmem-remove3 {x} {z} {fvs (graft1 s1 y s2)} (fst (||-≡-ff{x ≃ z} u3))
+  (fvs-∈-graft {s1} {s2} {x} {y} u1 ub (snd (||-≡-ff{x ≃ z} u3))) 

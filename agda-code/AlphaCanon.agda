@@ -237,51 +237,91 @@ pathDistinct-Subst {t1} {ƛ y t2} {ƛ y t2} {x} {vs1} {vs2} pd1 pd2 ap (lam-stop
        h | inj₁ i | q = pathDistinct-collapse {x} {y} {[]} {vs1} {vs2} {t2} q i
        h | inj₂ i | q = pathDistinct-not-free{x}{y :: vs1}{vs2}{t2} (&&-elim2 pd2) i
 
-Subst-var-graft1 : ∀{r s1 s2 t1 t2 : Tm}{x y : V}{vs : 𝕃 V} →
-               x ≃ y ≡ ff →
-               varsub (fvs r) vs ≡ tt → 
-               varmem y vs ≡ ff → 
-               pathDistinct vs s2 ≡ tt → 
-               Subst r x s1 t1 →
-               Subst r x s2 t2 →
-               Subst r x (graft1 s1 y s2) (graft1 t1 y t2)
---Subst-var-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} sb1 sb2 = {!!}
-Subst-var-graft1 {r} {s1} {s2} {t1} {t2} {x} {y}{vs} ne fr vm _ sb1 var-found
- rewrite ne | graft-~∈{y}{t1}{r} (varmem-varsub-ff {y} {fvs r} {vs} fr vm) = var-found 
-Subst-var-graft1 {r} {s1} {var z} {t1} {var z} {x} {y} ne fr vm _ sb1 (var-not{x = z} x₁) with keep (z ≃ y)
-Subst-var-graft1 {r} {s1} {var z} {t1} {var z} {x} {y} ne fr vm _ sb1 (var-not{x = z} x₁) | tt , eq rewrite eq = sb1
-Subst-var-graft1 {r} {s1} {var z} {t1} {var z} {x} {y} ne fr vm _ sb1 (var-not{x = z} x₁) | ff , eq rewrite eq = var-not x₁
-Subst-var-graft1 {r} {s1} {s2a · s2b} {t1} {t2a · t2b} {x} {y}{vs} ne fr vm pd sb1 (app sb2a sb2b) =
-  app (Subst-var-graft1 {r} {s1} {s2a} {t1} {t2a} {x} {y} {vs} ne fr vm (&&-elim1 pd) sb1 sb2a)
-      (Subst-var-graft1 {r} {s1} {s2b} {t1} {t2b} {x} {y} {vs}ne fr vm (&&-elim2 pd) sb1 sb2b)
-Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z t2} {x} {y} ne fr vm pd sb1 (lam-go x₁ x₂ sb2) with keep (y ≃ z) 
-Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z t2} {x} {y} ne fr vm pd sb1 (lam-go x₁ x₂ sb2) | tt , eq
-  rewrite eq | graft-[] {s2} | graft-[] {t2} = lam-go x₁ x₂ sb2
-Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z t2} {x} {y}{vs} ne fr vm pd sb1 (lam-go x₁ x₂ sb2) | ff , eq rewrite eq
-  with varmem-remove{x}{z}{fvs s2} x₁
-Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z t2} {x} {y}{vs} ne fr vm pd sb1 (lam-go x₁ x₂ sb2) | ff , eq | p1 , p2
-  = lam-go (varmem-remove3 {x} {z} {fvs (graft1 s1 y s2)} p1 (graft-∈ {x} {y} {s1} {s2} ne p2)) x₂
-      (Subst-var-graft1 {r} {s1} {s2} {t1} {t2} {x} {y}{z :: vs} ne
-        (varsub-++2 {[ z ]} {fvs r} {vs} fr) h
-        (&&-elim2 pd) sb1 sb2)
-  where h : varmem y (z :: vs) ≡ ff
-        h rewrite eq = vm
-Subst-var-graft1 {r} {s1} {s2} {t1} {t2} {x} {y} ne fr vm pd sb1 (lam-stop{x = z} x₁) with keep (y ≃ z)
-Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z s2} {x} {y} ne fr vm pd sb1 (lam-stop{x = z} x₁) | tt , eq
- rewrite eq | graft-[]{s2} = lam-stop x₁
-Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z s2} {x} {y} ne fr vm pd sb1 (lam-stop{x = z} x₁) | ff , eq rewrite eq
-  with keep (varmem x (varrem z (fvs (graft1 s1 y s2))))
-Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z s2} {x} {y}{vs} ne fr vm pd sb1 (lam-stop{x = z} x₁) | ff , eq | tt , vm'
- = lam-go vm' (varmem-varsub-ff {z} {fvs r} {vs} fr (~-≡-tt (&&-elim1 pd)))
-     (Subst-var-graft1 {r} {s1} {s2} {t1} {s2} {x} {y}{z :: vs} ne
-       (varsub-++2{[ z ]}{fvs r}{vs} fr) h
-       (&&-elim2 pd) sb1 (Subst-refl h'))
- where h : varmem y (z :: vs) ≡ ff
-       h rewrite eq = vm
-       h' : varmem x (fvs s2) ≡ ff        
-       h' rewrite sym (varmem-remove-neq{x}{z}{fvs s2} (fst (varmem-remove{x}{z}{fvs (graft1 s1 y s2)} vm'))) = x₁
-Subst-var-graft1 {r} {s1} {ƛ z s2} {t1} {ƛ z s2} {x} {y}{vs} ne fr vm pd sb1 (lam-stop{x = z} x₁) | ff , eq | ff , vm'
- = {!!}  
+Subst-var-graft1 : ∀{s1 s2 t1 t2 : Tm}{x y z : V}{vs : 𝕃 V} →
+                   x ≃ z ≡ ff →
+                   y ≃ z ≡ ff →
+                   varmem x (bvs s2) ≡ ff →
+                   varmem y (bvs s2) ≡ ff →                    
+                   varsub (fvs s1) vs ≡ tt → 
+                   pathDistinct vs s2 ≡ tt → 
+                   Subst (var x) y s1 t1 →
+                   Subst (var x) y s2 t2 →
+                   Subst (var x) y (graft1 s1 z s2) (graft1 t1 z t2)
+Subst-var-graft1 {s1} {var y} {t1} {var x} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 var-found rewrite ne3 | ne2 = var-found
+Subst-var-graft1 {s1} {var w} {t1} {var w} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (var-not x₁) with keep (w ≃ z)
+Subst-var-graft1 {s1} {var w} {t1} {var w} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (var-not x₁) | tt , eq rewrite eq = sb1
+Subst-var-graft1 {s1} {var w} {t1} {var w} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (var-not x₁) | ff , eq rewrite eq =
+ var-not x₁
+Subst-var-graft1 {s1} {sa · sb} {t1} {ta · tb} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (app sb2 sb3)
+  rewrite varmem-++ y (bvs sa) (bvs sb) | varmem-++ x (bvs sa) (bvs sb) =
+  app (Subst-var-graft1 {s1} {sa} {t1} {ta} {x} {y} {z} {vs}
+        ne2 ne3 (fst (||-≡-ff{varmem x (bvs sa)} nx)) (fst (||-≡-ff{varmem y (bvs sa)} ny)) fv
+        (&&-elim1 pd) sb1 sb2)
+      (Subst-var-graft1 {s1} {sb} {t1} {tb} {x} {y} {z} {vs}
+        ne2 ne3 (snd (||-≡-ff{varmem x (bvs sa)} nx)) (snd (||-≡-ff{varmem y (bvs sa)} ny)) fv
+        (&&-elim2 pd) sb1 sb3) 
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w t2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-go x₁ x₂ sb2)
+  with ∈ƛ{y}{w}{s2} x₁
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w t2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-go x₁ x₂ sb2) | i1 , i2
+ with keep (z ≃ w) 
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w t2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1
+ (lam-go x₁ x₂ sb2) | i1 , i2 | tt , eq rewrite eq | graft-[] {s2} | graft-[] {t2} =
+  lam-go x₁ x₂ sb2
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w t2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1
+ (lam-go x₁ x₂ sb2) | i1 , i2 | ff , eq rewrite eq =
+ lam-go h x₂
+  (Subst-var-graft1 {s1} {s2} {t1} {t2} {x} {y} {z} {w :: vs}
+    ne2 ne3 (snd (||-≡-ff{x ≃ w} nx)) (snd (||-≡-ff{y ≃ w} ny))
+    (varsub-++2 {[ w ]} {fvs s1} {vs} fv)
+    (&&-elim2 pd) sb1 sb2)
+ where h : y ∈ ƛ w (graft ((z , s1) :: []) s2) ≡ tt
+       h rewrite varmem-remove3{y}{w}{fvs (graft1 s1 z s2)} i1 (graft-∈ {y} {z} {s1} {s2} ne3 i2) = refl
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w s2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-stop x₁)
+ with keep (y ∈ s1) | keep (z ≃ w) 
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w s2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-stop x₁)
+  | tt , nn | tt , zw rewrite zw | graft-[] {s2} = lam-stop x₁
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w s2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-stop x₁)
+  | tt , nn | ff , zw rewrite zw with keep (z ∈ s2)
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w s2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-stop x₁)
+  | tt , nn | ff , zw | tt , z2 with ∈ƛff{y}{w}{s2} x₁ 
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w s2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-stop x₁)
+  | tt , nn | ff , zw | tt , z2 | inj₁ i rewrite ≃-≡{y} i | varmem-varsub{w}{fvs s1}{vs} nn fv with pd
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w s2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-stop x₁)
+  | tt , nn | ff , zw | tt , z2 | inj₁ i | ()
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w s2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-stop x₁)
+  | tt , nn | ff , zw | tt , z2 | inj₂ (i1 , i2) =
+  lam-go h' h
+    (Subst-var-graft1 {s1} {s2} {t1} {s2} {x} {y} {z} {w :: vs}
+       ne2 ne3 (snd (||-≡-ff{x ≃ w} nx)) (snd (||-≡-ff{y ≃ w} ny))
+       (varsub-++2 {[ w ]} {fvs s1} {vs} fv) (&&-elim2 pd)
+       sb1 (Subst-refl {var x} {s2} {y} i2))
+  where h : w ∈ var x ≡ ff
+        h rewrite ~≃-sym{x} (fst (||-≡-ff{x ≃ w} nx)) = refl
+        h' : y ∈ ƛ w (graft ((z , s1) :: []) s2) ≡ tt
+        h' rewrite varmem-remove-neq{y}{w}{fvs (graft1 s1 z s2)} i1 =
+          fvs-∈-graft {s1} {s2} {y} {z} nn z2 (snd (||-≡-ff{y ≃ w} ny))
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w s2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-stop x₁)
+  | tt , nn | ff , zw | ff , z2 with varmem-remove-neq{y}{w}{fvs s2} (fst (||-≡-ff{y ≃ w} ny))
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w s2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-stop x₁)
+  | tt , nn | ff , zw | ff , z2 | rm
+  rewrite rm
+        | graft-~∈{z}{s1}{s2} z2
+        | graft-~∈{z}{t1}{s2} z2 = Subst-refl {var x} {ƛ w s2} {y} h
+  where h : varmem y (varrem w (fvs s2)) ≡ ff
+        h rewrite rm = x₁
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w s2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-stop x₁)
+  | ff , nn | tt , zw rewrite zw | graft-[] {s2} = lam-stop x₁
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w s2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-stop x₁)
+  | ff , nn | ff , zw with Subst-not-found{var x}{s1}{t1}{y} sb1 nn
+Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w s2} {x} {y} {z} {vs} ne2 ne3 nx ny fv pd sb1 (lam-stop x₁)
+  | ff , nn | ff , zw | refl rewrite zw | varmem-remove-neq{y}{w}{fvs s2} (fst (||-≡-ff{y ≃ w} ny))
+             = lam-stop h
+  where h' : varmem y (varrem z (fvs s2) ++ fvs s1) ≡ ff
+        h' rewrite varmem-++ y (varrem z (fvs s2)) (fvs s1) | nn | varmem-remove-neq{y}{z}{fvs s2} ne3 | x₁ = refl
+        h : y ∈ ƛ w (graft ((z , s1) :: []) s2) ≡ ff
+        h rewrite varmem-remove-neq{y}{w}{fvs (graft1 s1 z s2)} (fst (||-≡-ff{y ≃ w} ny)) =
+          varmem-varsub-ff {y} {fvs (graft1 s1 z s2)}
+           {varrem z (fvs s2) ++ fvs s1} (fvs-graft{z}{s2}{s1}) h'
 
 pathDistinct-Subst-var : ∀{x y : V}{vs : 𝕃 V}{r s : Tm} →
                          y ∈ r ≡ ff → 
@@ -304,3 +344,12 @@ pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z r} yni pd (lam-stop xni) with
 pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z r} yni pd (lam-stop xni) | inj₁ i rewrite ≃-≡{x} i = {!!}
 pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z r} yni pd (lam-stop xni) | inj₂ i = {!!}
 
+pathDistinct-fvs : ∀{t : Tm}{vs : 𝕃 V} → 
+                   pathDistinct vs t ≡ tt →
+                   varsub (fvs t) vs ≡ tt 
+pathDistinct-fvs {var x} {vs} pd rewrite pd = refl
+pathDistinct-fvs {t1 · t2} {vs} pd =
+ varsub-++il {fvs t1} {fvs t2} {vs}
+  (pathDistinct-fvs{t1}{vs} (&&-elim1 pd))
+  (pathDistinct-fvs{t2}{vs} (&&-elim2 pd))
+pathDistinct-fvs {ƛ x t} {vs} pd = varsub-remove1 {fvs t} {vs} {x} (pathDistinct-fvs{t}{x :: vs} (&&-elim2 pd))

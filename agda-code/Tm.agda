@@ -46,8 +46,8 @@ bvs (ƛ x t) = x :: bvs t
 
 ∈ƛff : ∀{x y : V}{t : Tm} →
      x ∈ ƛ y t ≡ ff →
-     x ≃ y ≡ tt ∨ x ∈ t ≡ ff
-∈ƛff{x}{y}{t} u = varmem-remove2{x}{y}{fvs t} u
+     x ≃ y ≡ tt ∨ (x ≃ y ≡ ff ∧ x ∈ t ≡ ff)
+∈ƛff{x}{y}{t} u = varmem-remove2a{x}{y}{fvs t} u
 
 ∈ƛ· : ∀{x y : V}{t1 t2 : Tm} →
      x ∈ ƛ y (t1 · t2) ≡ ff → 

@@ -12,6 +12,7 @@ open import Substitution
 open import AlphaCanon
 open import Takahashi 
 open import Parallel
+open import TriangleLemmas
 
 triangle-⇒αβ : ∀{s t t' : Tm}{ρ : Renaming}{b : 𝔹} →
                 injectiver ρ ≡ tt → 

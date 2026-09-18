@@ -1,4 +1,4 @@
--- {-# OPTIONS --allow-unsolved-metas #-}
+{-# OPTIONS --allow-unsolved-metas #-}
 -- 
 {- The function proposed by Takahashi to compute the maximum
    parallel reduct of t.
@@ -117,42 +117,3 @@ varsub-bvs-sd {ƛ x t} = varsub-++-cong {[ x ]} {bvs (sd t)} {bvs t} (varsub-bvs
    (varsub-remove-both {fvs (tk s)} {fvs s} {z} (varsub-fvs-tk{s}))
    w)
 
-Subst-var-tk : ∀{s r : Tm}{x y : V} →
-               Subst (var x) y s r →
-               Subst (var x) y (tk s) (tk r)
-Subst-var-tk {var z} {r} {x} {y} var-found = var-found
-Subst-var-tk {var z} {r} {x} {y} (var-not x₂) = var-not x₂
-Subst-var-tk {var x₁ · s2} {var x · r2} {x} {y} (app var-found sb) =
-  app var-found (Subst-var-tk{s2}{r2}{x}{y} sb)
-Subst-var-tk {var z · s2} {var _ · r2} {x} {y} (app (var-not w) sb) =
-  app (var-not w) (Subst-var-tk{s2}{r2}{x}{y} sb)
-Subst-var-tk {s1 · s3 · s2} {r1 · r3 · r2} {x} {y} (app (app sb1 sb2) sb3) =
- app (Subst-var-tk{s1 · s3}{r1 · r3}{x}{y} (app sb1 sb2))
-     (Subst-var-tk{s2}{r2}{x}{y} sb3)
-Subst-var-tk {ƛ z s1 · s2} {ƛ z r1 · r2} {x} {y} (app (lam-go x₃ x₄ sb) sb₁) =
- let p = ∈ƛ{y}{z}{s1} x₃ in
-  {!!}
-{-  Subst-graft1 {var x} {tk s2} {tk s1} {tk r2} {tk r1} {y} {z}
-   {[ x ]} (fst p) (varsub-refl{[ x ]}) x₄ {!!}
-   (Subst-var-tk {s2} {r2} {x} {y} sb₁)
-   (Subst-var-tk {s1} {r1} {x} {y} sb)
--}
-Subst-var-tk {ƛ z s1 · s2} {ƛ w r1 · r2} {x} {y} (app (lam-stop x₃) sb₁) = {!!}
-Subst-var-tk {ƛ z s} {ƛ z r} {x} {y} (lam-go w x₃ sb) with keep (y ∈ ƛ z (tk s))
-Subst-var-tk {ƛ z s} {ƛ z r} {x} {y} (lam-go w x₃ sb) | tt , eq = 
-  lam-go eq x₃ (Subst-var-tk{s}{r}{x}{y} sb)
-
-Subst-var-tk {ƛ z s} {ƛ z r} {x} {y} (lam-go w x₃ sb) | ff , eq
-  with varmem-remove{y}{z}{fvs s} w | varmem-remove2{y}{z}{fvs (tk s)} eq
-Subst-var-tk {ƛ z s} {ƛ z r} {x} {y} (lam-go w x₃ sb) | ff , eq | q1 , q2 | inj₁ i rewrite i with q1
-Subst-var-tk {ƛ z s} {ƛ z r} {x} {y} (lam-go w x₃ sb) | ff , eq | q1 , q2 | inj₁ i | ()
-Subst-var-tk {ƛ z s} {ƛ z r} {x} {y} (lam-go w x₃ sb) | ff , eq | q1 , q2 | inj₂ i = h'
-  where h : tk s ≡ tk r
-        h = Subst-not-found{var x}{tk s}{tk r}{y} (Subst-var-tk{s}{r}{x}{y} sb) i 
-        h1 : y ∈ ƛ z (tk r) ≡ ff
-        h1 rewrite sym h = eq
-        h' : Subst (var x) y (ƛ z (tk s)) (ƛ z (tk r))
-        h' rewrite h = lam-stop {var x} {y} {z} {tk r} h1
-
-Subst-var-tk {ƛ z s} {r} {x} {y} (lam-stop w) =
-  lam-stop (∈ƛ-tk-ff{y}{z}{s} w)
