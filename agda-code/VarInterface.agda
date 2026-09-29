@@ -1,5 +1,6 @@
 open import lib
 open import bool-relations
+open import functions
 
 fresh-distinctness : ∀{V : Set}(_≃_ : V → V → 𝔹) → (𝕃 V → V) → Set
 fresh-distinctness{V} _≃_ fresh = ∀ {l : 𝕃 V} → list-member _≃_ (fresh l) l ≡ ff
@@ -103,6 +104,9 @@ varmem x vs = list-member _≃_ x vs
 varsub : 𝕃 V → 𝕃 V → 𝔹
 varsub vs vs' = isSublist vs vs' _≃_
 
+varsubs : ∀{n : ℕ} → 𝕍 (𝕃 V) n → 𝕍 (𝕃 V) n → 𝔹
+varsubs vss1 vss2 = 𝕍-all id (zipWith𝕍 varsub vss1 vss2) 
+
 varapart : 𝕃 V → 𝕃 V → 𝔹
 varapart vs vs' = disjoint _≃_ vs vs' 
 
@@ -157,6 +161,15 @@ varsub-++2 : ∀{l1 l2 l2' : 𝕃 V} →
              varsub l2 l2' ≡ tt →
              varsub l2 (l1 ++ l2') ≡ tt
 varsub-++2{l1}{l2}{l2'} = isSublist-++2{V}{_≃_}{l1}{l2}{l2'} (λ{x} → ≃-refl{x})
+
+varsubs-++2 : ∀{n : ℕ}{l1 : 𝕃 V}{l2 : 𝕍 (𝕃 V) n}{l2' : 𝕃 V} →
+             varsubs l2 (repeat𝕍 l2' n) ≡ tt → 
+             varsubs l2 (repeat𝕍 (l1 ++ l2') n) ≡ tt
+varsubs-++2 {zero} {l1} {[]} {l2'} u = refl
+varsubs-++2 {suc n} {l1} {vs :: l2} {l2'} u =
+ &&-intro {varsub vs (l1 ++ l2')}
+   (varsub-++2{l1}{vs}{l2'} (&&-elim1 u))
+   (varsubs-++2{n}{l1}{l2}{l2'} (&&-elim2 u))
 
 varsub-++3 : ∀{l1 l1' l2 : 𝕃 V} →
              varsub l1 l1' ≡ tt →
@@ -315,3 +328,11 @@ varunique-++-varapart : ∀{l1 l2 : 𝕃 V} →
                         varunique (l1 ++ l2) ≡ tt →
                         varapart l1 l2 ≡ tt 
 varunique-++-varapart{l1}{l2} = unique-++-disjoint{V}{_≃_}{l1}{l2}
+
+fresh-extend-mem : ∀{v : V}{vs1 vs2 : 𝕃 V} →
+                   v ≃ fresh (vs1 ++ v :: vs2) ≡ ff
+fresh-extend-mem{v}{vs1}{vs2} with fresh-distinct{vs1 ++ v :: vs2} | keep (v ≃ fresh (vs1 ++ v :: vs2))
+fresh-extend-mem{v}{vs1}{vs2} | u | tt , eq
+ rewrite eq | sym (≃-≡{v} eq) | varmem-++ v vs1 (v :: vs2) | ≃-refl{v} | ||-tt(varmem v vs1) with u
+fresh-extend-mem{v}{vs1}{vs2} | u | tt , eq | ()
+fresh-extend-mem{v}{vs1}{vs2} | u | ff , eq rewrite eq = refl

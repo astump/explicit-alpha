@@ -2,6 +2,7 @@ open import lib
 open import relations as R
 open import diamond
 open import VarInterface
+open import functions
 
 module Renaming where
 
@@ -159,3 +160,9 @@ applyr-∈ {y} {ρ} {ƛ x t} m n | inj₂ (u1 , u2) =
  varmem-remove4 {y} {x} {fvs (applyr (ρ \\ x) t)} u1 (applyr-∈{y}{ρ \\ x}{t} h u2)
  where h : ~ varmem y (x :: ranr ρ) ≡ tt
        h rewrite u1 = m
+
+domrs : ∀{n : ℕ} → 𝕍 Renaming n → 𝕍 (𝕃 V) n 
+domrs ρs = map𝕍 domr ρs
+
+ranrs : ∀{n : ℕ} → 𝕍 Renaming n → 𝕍 (𝕃 V) n 
+ranrs ρs = map𝕍 ranr ρs

@@ -27,6 +27,11 @@ bvs (var x) = []
 bvs (t · t₁) = bvs t ++ bvs t₁ 
 bvs (ƛ x t) = x :: bvs t
 
+size : Tm → ℕ
+size (var x) = 1
+size (t1 · t2) = suc (size t1 + size t2)
+size (ƛ x t) = suc (size t)
+
 ∈var : ∀{x y : V}{b : 𝔹} →
        x ∈ var y ≡ b →
        x ≃ y ≡ b

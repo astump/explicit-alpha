@@ -1,6 +1,7 @@
 {-# OPTIONS --allow-unsolved-metas #-}
 open import lib hiding (_>>=_ ; return ; _∘_)
 open import relations
+open import functions
 open import diamond
 open import VarInterface
 
@@ -9,7 +10,9 @@ module AlphaCanon where
 open import Tm 
 open import Renaming
 open import Subst
-open import Substitution
+open import Substitution hiding (_∘_)
+open import Monad
+open import AlphaM
 
 αc : Tm → Renaming → Tm
 αc (var x) ρ = var (rename ρ x)
@@ -20,6 +23,27 @@ open import Substitution
 
 αcanon : Tm → Tm
 αcanon t = αc t (diagonal (fvs t))
+
+αa : Tm → αM Tm
+αa (var x) = do
+ v ← renamev x
+ return (var v)
+αa (t1 · t2) = do
+ r1 ← αa t1
+ r2 ← αa t2
+ return (r1 · r2)
+αa (ƛ x t) =
+ withFresh x
+   (λ n →
+     do
+      r ← αa t
+      return (ƛ n r))
+
+αaa : Tm → Renaming → 𝕃 V → Tm × 𝕃 V
+αaa t ρ vs = runαm (αa t) ρ vs
+
+--αcanon2 : Tm → Tm
+--αcanon2 t = (αaa t) (diagonal (fvs t)) (fvs t) 
 
 {- pathDistinct vs t
 
@@ -59,6 +83,35 @@ allDistinct vs t =
 αc-pathDistinct {ƛ x t}{ρ} sb =
   &&-intro {~ varmem (fresh (ranr ρ)) (ranr ρ)} (~-≡-ff (fresh-distinct{ranr ρ})) 
    (αc-pathDistinct {t} {(x , fresh (ranr ρ)) :: ρ} (varsub-remove {fvs t} {domr ρ} {x} sb))
+
+αa-allDistinct-Pre : Pre
+αa-allDistinct-Pre ρ vs = varsub (ranr ρ) vs ≡ tt
+
+{-
+αa-allDistinct-Post : Post Tm
+αa-allDistinct-Post ρ vs p = allDistinct (snd p) (fst p) ≡ tt ∧ varsub vs (snd p) ≡ tt
+
+αa-allDistinct-Pre' : Tm → Pre
+αa-allDistinct-Pre' t ρ vs = αa-allDistinct-Pre ρ vs
+
+αa-allDistinct-Post' : Tm → Post Tm
+αa-allDistinct-Post' t ρ vs p = αa-allDistinct-Post ρ vs p ∧ varunique (bvs t ++ bvs (fst p)) ≡ tt
+
+bindα-specific : ∀{m1 : αM Tm}{m2 : Tm → αM Tm} →
+                 αM-hoare αa-allDistinct-Pre αa-allDistinct-Post m1 →
+                 (∀{r : Tm} → αM-hoare (αa-allDistinct-Pre' r) (αa-allDistinct-Post' r) (m2 r)) →
+                 αM-hoare αa-allDistinct-Pre αa-allDistinct-Post (m1 >>=α m2)
+bindα-specific{m1}{m2} d1 d2 {ρ}{vs} sub =
+ let p1 = runαm m1 ρ vs in
+ let p2 = runαm (m2 (fst p1)) ρ vs in
+  {!!} , {!!}
+
+αa-allDistinct : ∀{t : Tm} →
+                 αM-hoare αa-allDistinct-Pre αa-allDistinct-Post (αa t)
+αa-allDistinct {var x} = {!!}
+αa-allDistinct {t1 · t2} = {!!}
+αa-allDistinct {ƛ x t} = {!!}
+-}
 
 pathDistinct-Apart' : ∀{t : Tm}{vs vs' : 𝕃 V} →
                 pathDistinct vs' t ≡ tt →
@@ -353,3 +406,4 @@ pathDistinct-fvs {t1 · t2} {vs} pd =
   (pathDistinct-fvs{t1}{vs} (&&-elim1 pd))
   (pathDistinct-fvs{t2}{vs} (&&-elim2 pd))
 pathDistinct-fvs {ƛ x t} {vs} pd = varsub-remove1 {fvs t} {vs} {x} (pathDistinct-fvs{t}{x :: vs} (&&-elim2 pd))
+

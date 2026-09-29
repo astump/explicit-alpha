@@ -77,6 +77,8 @@ triangle-⇒αβ {ƛ y s} {ƛ y t} {ƛ y' t'} {ρ} {b} j pd vs (lam d) (lam m ne
            (fvs-αc {s} {(y , y') :: ρ} vsr) h)) vn
      (triangle-⇒αβ {s} {t} {t'} {(y , y') :: ρ}
        (&&-intro {~ varmem y' (ranr ρ)} (~-≡-ff m) j)
-       (&&-elim2 pd) vsr d rn) {!!}
+       (&&-elim2 pd) vsr d rn)
+       (Subst-var-tk {αc s ((y , y') :: ρ)} {αc s ((y , n) :: ρ)} {n} {y'}
+         {y' :: ranr ρ} {!!} {!!} {!!} {!!} {!!})
  where h : varmem (fresh-ℕ (ranr ρ)) (y' :: ranr ρ) ≡ ff
        h rewrite ~≃-sym{y'} vn = fresh-distinct{ranr ρ}
