@@ -42,9 +42,6 @@ open import AlphaM
 αaa : Tm → Renaming → 𝕃 V → Tm × 𝕃 V
 αaa t ρ vs = runαm (αa t) ρ vs
 
---αcanon2 : Tm → Tm
---αcanon2 t = (αaa t) (diagonal (fvs t)) (fvs t) 
-
 {- pathDistinct vs t
 
    This means that the variables in vs are not bound in t
@@ -70,9 +67,7 @@ pathDistinct vs (ƛ x t) = ~ varmem x vs && pathDistinct (x :: vs) t
    So the same variable cannot be bound twice.
 -}
 allDistinct : 𝕃 V → Tm → 𝔹
-allDistinct vs t =
- let bs = bvs t in
-  varunique bs && varapart bs vs && varsub (fvs t) vs
+allDistinct vs t = varunique (bvs t) && pathDistinct vs t 
 
 αc-pathDistinct : ∀{t : Tm}{ρ : Renaming} →
              varsub (fvs t) (domr ρ) ≡ tt → 
@@ -86,32 +81,6 @@ allDistinct vs t =
 
 αa-allDistinct-Pre : Pre
 αa-allDistinct-Pre ρ vs = varsub (ranr ρ) vs ≡ tt
-
-{-
-αa-allDistinct-Post : Post Tm
-αa-allDistinct-Post ρ vs p = allDistinct (snd p) (fst p) ≡ tt ∧ varsub vs (snd p) ≡ tt
-
-αa-allDistinct-Pre' : Tm → Pre
-αa-allDistinct-Pre' t ρ vs = αa-allDistinct-Pre ρ vs
-
-αa-allDistinct-Post' : Tm → Post Tm
-αa-allDistinct-Post' t ρ vs p = αa-allDistinct-Post ρ vs p ∧ varunique (bvs t ++ bvs (fst p)) ≡ tt
-
-bindα-specific : ∀{m1 : αM Tm}{m2 : Tm → αM Tm} →
-                 αM-hoare αa-allDistinct-Pre αa-allDistinct-Post m1 →
-                 (∀{r : Tm} → αM-hoare (αa-allDistinct-Pre' r) (αa-allDistinct-Post' r) (m2 r)) →
-                 αM-hoare αa-allDistinct-Pre αa-allDistinct-Post (m1 >>=α m2)
-bindα-specific{m1}{m2} d1 d2 {ρ}{vs} sub =
- let p1 = runαm m1 ρ vs in
- let p2 = runαm (m2 (fst p1)) ρ vs in
-  {!!} , {!!}
-
-αa-allDistinct : ∀{t : Tm} →
-                 αM-hoare αa-allDistinct-Pre αa-allDistinct-Post (αa t)
-αa-allDistinct {var x} = {!!}
-αa-allDistinct {t1 · t2} = {!!}
-αa-allDistinct {ƛ x t} = {!!}
--}
 
 pathDistinct-Apart' : ∀{t : Tm}{vs vs' : 𝕃 V} →
                 pathDistinct vs' t ≡ tt →
@@ -144,9 +113,7 @@ allDistinct-app1 : ∀{t1 t2 : Tm}{vs : 𝕃 V} →
 allDistinct-app1{t1}{t2}{vs} ad =
   &&-intro {varunique (bvs t1)}
     (varunique-++1 {bvs t1} {bvs t2} (&&-elim1{varunique (bvs t1 ++ bvs t2)} ad))
-    (&&-intro {varapart (bvs t1) vs}
-       (fst (varapart-++2{bvs t1}{bvs t2}{vs} (&&-elim1 (&&-elim2{varunique (bvs (t1 · t2))} ad)) ))
-       (varsub-++1l {fvs t1} {fvs t2} {vs} (&&-elim2 (&&-elim2{varunique (bvs (t1 · t2))} ad))))
+    (&&-elim1 (&&-elim2{varunique (bvs t1 ++ bvs t2)} ad))
 
 allDistinct-app2 : ∀{t1 t2 : Tm}{vs : 𝕃 V} →
                   allDistinct vs (t1 · t2) ≡ tt → 
@@ -154,33 +121,19 @@ allDistinct-app2 : ∀{t1 t2 : Tm}{vs : 𝕃 V} →
 allDistinct-app2{t1}{t2}{vs} ad =
   &&-intro {varunique (bvs t2)}
     (varunique-++2 {bvs t1} {bvs t2} (&&-elim1{varunique (bvs t1 ++ bvs t2)} ad))
-    (&&-intro {varapart (bvs t2) vs}
-      (snd (varapart-++2{bvs t1}{bvs t2}{vs} (&&-elim1 (&&-elim2{varunique (bvs (t1 · t2))} ad)) ))
-      (varsub-++2l {fvs t1} {fvs t2} {vs} (&&-elim2 (&&-elim2{varunique (bvs (t1 · t2))} ad))))
+    (&&-elim2 (&&-elim2{varunique (bvs t1 ++ bvs t2)} ad))
 
 allDistinct-lam : ∀{x : V}{t : Tm}{vs : 𝕃 V} →
                    allDistinct vs (ƛ x t) ≡ tt →
                   ~ varmem x vs ≡ tt ∧ allDistinct (x :: vs) t ≡ tt
 allDistinct-lam{x}{t}{vs} ad with &&-elim{varunique (bvs (ƛ x t))} ad 
-allDistinct-lam{x}{t}{vs} ad | p1 , p2 with &&-elim{varapart (bvs (ƛ x t)) vs} p2 
-allDistinct-lam{x}{t}{vs} ad | p1 , p2 | p2a , p2b =
-  &&-elim1 p2a ,
-  &&-intro (&&-elim2{~ varmem x (bvs t)} p1) 
-   (&&-intro {varapart (bvs t) (x :: vs)} (varapart-sym {x :: vs} {bvs t} 
-     (&&-intro {~ varmem x (bvs t)} (&&-elim1 p1) (varapart-sym {bvs t} {vs} (&&-elim2 p2a))))
-     (varsub-remove{fvs t}{vs}{x} p2b)) 
+allDistinct-lam{x}{t}{vs} ad | p1 , p2 =
+ (&&-elim1 p2) , (&&-intro {varunique (bvs t)} (&&-elim2 p1) (&&-elim2 p2))
 
 all-to-path : ∀{t : Tm}{vs : 𝕃 V} →
               allDistinct vs t ≡ tt →
               pathDistinct vs t ≡ tt
-all-to-path {var x} {vs} ad =
- &&-elim1{varmem x vs} (&&-elim2 {varunique []} (&&-elim2 {varapart [] vs}{varsub [ x ] vs} ad))
-all-to-path {t1 · t2} {vs} ad =
-  &&-intro {pathDistinct vs t1}
-    (all-to-path{t1}{vs} (allDistinct-app1{t1}{t2}{vs} ad))
-    (all-to-path{t2}{vs} (allDistinct-app2{t1}{t2}{vs} ad))
-all-to-path {ƛ x t} {vs} ad with allDistinct-lam{x}{t}{vs} ad
-all-to-path {ƛ x t} {vs} ad | p1 , p2 rewrite p1 | all-to-path{t}{x :: vs} p2 = refl
+all-to-path ad = &&-elim2 ad
 
 pathDistinct-collapse : ∀{x y : V}{vs1 vs2 vs3 : 𝕃 V}{t : Tm} →
                         pathDistinct (vs1 ++ y :: vs2 ++ x :: vs3) t ≡ tt → 
@@ -376,6 +329,7 @@ Subst-var-graft1 {s1} {ƛ w s2} {t1} {ƛ w s2} {x} {y} {z} {vs} ne2 ne3 nx ny fv
           varmem-varsub-ff {y} {fvs (graft1 s1 z s2)}
            {varrem z (fvs s2) ++ fvs s1} (fvs-graft{z}{s2}{s1}) h'
 
+{-
 pathDistinct-Subst-var : ∀{x y : V}{vs : 𝕃 V}{r s : Tm} →
                          y ∈ r ≡ ff → 
                          pathDistinct (y :: vs) s ≡ tt →
@@ -396,6 +350,7 @@ pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z s} ni pd (lam-go x₁ x₂ sb
 pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z r} yni pd (lam-stop xni) with ∈ƛff{x}{z}{r} xni
 pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z r} yni pd (lam-stop xni) | inj₁ i rewrite ≃-≡{x} i = {!!}
 pathDistinct-Subst-var {x} {y} {vs} {ƛ z r} {ƛ z r} yni pd (lam-stop xni) | inj₂ i = {!!}
+-}
 
 pathDistinct-fvs : ∀{t : Tm}{vs : 𝕃 V} → 
                    pathDistinct vs t ≡ tt →
@@ -407,3 +362,31 @@ pathDistinct-fvs {t1 · t2} {vs} pd =
   (pathDistinct-fvs{t2}{vs} (&&-elim2 pd))
 pathDistinct-fvs {ƛ x t} {vs} pd = varsub-remove1 {fvs t} {vs} {x} (pathDistinct-fvs{t}{x :: vs} (&&-elim2 pd))
 
+
+αP : Tm → Set
+αP t = (ρ : Renaming)(vs : 𝕃 V) →
+        varsub (fvs t) (domr ρ) ≡ tt →
+        varsub (ranr ρ) vs ≡ tt →
+
+           Σ (Tm × 𝕃 ℕ) (λ r → 
+           Σ (𝕃 V) (λ i →
+           let t' = fst r in
+           let vs' = snd r in
+            r ≡ runαm{Tm} (αa t) ρ vs ∧ 
+            vs' ≡ vs ++ i ∧
+            varsub (fvs t') (ranr ρ) ≡ tt ∧
+            varapart vs i ≡ tt ∧
+            varsub (bvs t') i ≡ tt ∧ 
+            varunique (bvs t') ≡ tt ))
+
+αa-thm : ∀{t : Tm} → αP t
+αa-thm {var x} ρ vs sub1 sub2 =
+  (var (rename ρ x) , vs) , [] , refl , sym (++[] vs) , &&-intro (varmem-rename{x}{ρ} (&&-elim1 sub1)) refl  , (varapart-[]{vs}) , (refl , refl)
+αa-thm {t1 · t2} ρ vs sub1 sub2 with αa-thm {t1} ρ vs {!!} {!!} 
+αa-thm {t1 · t2} ρ vs sub1 sub2 | r1 , i , req , ieq , sub' , ap , bsub , buni with αa-thm {t2} ρ (snd r1) {!!} {!!} 
+αa-thm {t1 · t2} ρ vs sub1 sub2 | r1 , i , req , ieq , sub' , ap , bsub , buni | r2 , i2 , req2 , ieq2 , sub2' , ap2 , bsub2 , buni2
+ rewrite sym req | sym req2 =
+ (fst r1 · fst r2 , snd r2 ), i ++ i2 , refl , h1 , {!!} , {!!} , {!!} , varapart-++-varunique{bvs (fst r1)} {!!}
+ where h1 : snd r2 ≡ vs ++ i ++ i2
+       h1 rewrite ieq2 | ieq = ++-assoc vs i i2
+αa-thm {ƛ x t} ρ vs sub1 sub2 = {!!}

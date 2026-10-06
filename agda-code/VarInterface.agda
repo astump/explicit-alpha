@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 open import lib
 open import bool-relations
 open import functions
@@ -328,6 +329,11 @@ varunique-++-varapart : ∀{l1 l2 : 𝕃 V} →
                         varunique (l1 ++ l2) ≡ tt →
                         varapart l1 l2 ≡ tt 
 varunique-++-varapart{l1}{l2} = unique-++-disjoint{V}{_≃_}{l1}{l2}
+
+varapart-++-varunique : ∀{l1 l2 : 𝕃 V} →
+                        varapart l1 l2 ≡ tt →
+                        varunique (l1 ++ l2) ≡ tt 
+varapart-++-varunique = {!!}
 
 fresh-extend-mem : ∀{v : V}{vs1 vs2 : 𝕃 V} →
                    v ≃ fresh (vs1 ++ v :: vs2) ≡ ff

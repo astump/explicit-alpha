@@ -97,8 +97,7 @@ Subst-var-tk {(ƛ z s1) · s2} {r1 · r2} {x} {y} {vs} nx ny vf ad (app (lam-sto
         h u | inj₂ (_ , i) = varmem-varsub-ff {y} {fvs (tk s1)} {fvs s1} (varsub-fvs-tk{s1}) i 
         h' : varsub (fvs s2) vs ≡ tt
         h' = varsub-++2l{varrem z (fvs s1)}{fvs s2}{vs}
-               (&&-elim2{~ list-member _=ℕ_ z vs && list-all (λ x₁ → ~ list-member _=ℕ_ x₁ vs) (bvs s1 ++ bvs s2)}
-                 (&&-elim2{~ list-member _=ℕ_ z (bvs s1 ++ bvs s2) && unique _=ℕ_ (bvs s1 ++ bvs s2)} ad))
+               vf
 
 Subst-var-tk {(ƛ z s1) · s2} {(ƛ z r1) · r2} {x} {y} {vs} nx ny vf ad (app (lam-go ni nc sb1) sb2) | p1 | p2 =
   let adlam = snd (allDistinct-lam{z}{s1}{vs} (allDistinct-app1{ƛ z s1}{s2}{vs} ad)) in
