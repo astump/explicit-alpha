@@ -1,0 +1,204 @@
+open import lib hiding (_∘_)
+open import VarInterface
+
+module Lemmas.Substitution(vi : VI) where
+
+open VI vi
+
+open import Tm vi
+open import VarOps vi
+open import Substitution vi
+open import Lemmas.VarOps vi
+open import Lemmas.Tm vi
+open import Lemmas.VarInterface vi
+
+lookup-nothing : ∀{σ : Substitution}{x : V} →
+                  lookup σ x ≡ nothing →
+                  subst-var σ x ≡ var x
+lookup-nothing{σ}{x} e with (lookup σ x)
+lookup-nothing {_} {_} e | nothing = refl
+
+lookup-just : ∀{σ : Substitution}{x : V}{t : Tm} →
+                  lookup σ x ≡ just t →
+                  subst-var σ x ≡ t
+lookup-just{σ}{x} e with lookup σ x
+lookup-just {σ} {x} refl | just x₁ = refl
+
+graft-[] : ∀{t : Tm} → graft [] t ≡ t
+graft-[] {var x} = refl
+graft-[] {t1 · t2} rewrite graft-[] {t1} | graft-[] {t2} = refl
+graft-[] {ƛ x t} rewrite graft-[] {t} = refl
+
+lookup-∘-nothing : ∀{x : V}{σ σ' : Substitution} →
+                    lookup σ x ≡ nothing →
+                    lookup (σ ∘ σ') x ≡ nothing 
+lookup-∘-nothing {x} {[]} {σ'} eq = refl
+lookup-∘-nothing {x} {(y , t) :: σ} {σ'} eq with x ≃ y 
+lookup-∘-nothing {x} {(y , t) :: σ} {σ'} () | tt
+lookup-∘-nothing {x} {(y , t) :: σ} {σ'} eq | ff rewrite lookup-∘-nothing{x}{σ}{σ'} eq = refl
+
+lookup-∘-just : ∀{x : V}{σ σ' : Substitution}{t : Tm} →
+                 lookup σ x ≡ just t →
+                 lookup (σ ∘ σ') x ≡ just (graft σ' t) 
+lookup-∘-just {x} {(y , t) :: σ} {σ'} {t'} eq with x ≃ y 
+lookup-∘-just {x} {(y , t) :: σ} {σ'} {t'} refl | tt = refl
+lookup-∘-just {x} {(y , t) :: σ} {σ'} {t'} eq | ff rewrite lookup-∘-just{x}{σ}{σ'}{t'} eq = refl
+
+lookup-mem : ∀{x : V}{σ : Substitution} →
+              in-dom x σ ≡ tt →
+              ∃ Tm λ r → lookup σ x ≡ just r
+lookup-mem {x} {(y , r) :: σ} eq with x ≃ y 
+lookup-mem {x} {(y , r) :: σ} eq | tt = r , refl
+lookup-mem {x} {(y , r) :: σ} eq | ff = lookup-mem{x}{σ} eq
+
+lookup-not-member : ∀{x : V}{σ : Substitution} →
+                    list-member _≃_ x (dom σ) ≡ ff → 
+                    lookup σ x ≡ nothing
+lookup-not-member {x} {[]} sl = refl
+lookup-not-member {x} {(y , _) :: σ} sl with x ≃ y 
+lookup-not-member {x} {(y , _) :: σ} () | tt
+lookup-not-member {x} {(y , _) :: σ} sl | ff = lookup-not-member{x}{σ} sl
+
+subst-var-not-member : ∀{x : V}{σ : Substitution} →
+                       list-member _≃_ x (dom σ) ≡ ff → 
+                       subst-var σ x ≡ var x
+subst-var-not-member{x}{σ} sl = lookup-nothing{σ} (lookup-not-member{x}{σ} sl)
+
+graft-∈ : ∀{x y : V}{t t' : Tm} →
+          x ≃ y ≡ ff → 
+          x ∈ t' ≡ tt →
+          x ∈ (graft1 t y t') ≡ tt 
+graft-∈ {x} {y} {t} {var z} ne nn with keep (z ≃ y)
+graft-∈ {x} {y} {t} {var z} ne nn | tt , eq rewrite ≃-≡{z} eq | ne with nn
+graft-∈ {x} {y} {t} {var z} ne nn | tt , eq | ()
+graft-∈ {x} {y} {t} {var z} ne nn | ff , eq rewrite eq = nn
+graft-∈ {x} {y} {t} {t1 · t2} ne nn
+  rewrite varmem-++ x (fvs t1) (fvs t2) | varmem-++ x (fvs (graft1 t y t1)) (fvs (graft1 t y t2))
+  with ||-elim{varmem x (fvs t1)} nn 
+graft-∈ {x} {y} {t} {t1 · t2} ne nn | inj₁ i rewrite graft-∈{x}{y}{t}{t1} ne i = refl
+graft-∈ {x} {y} {t} {t1 · t2} ne nn | inj₂ i rewrite graft-∈{x}{y}{t}{t2} ne i = ||-tt (varmem x (fvs (graft1 t y t1)))
+graft-∈ {x} {y} {t} {ƛ z t1} ne nn with ∈ƛ{x}{z}{t1} nn | keep (y ≃ z)
+graft-∈ {x} {y} {t} {ƛ z t1} ne nn | i1 , i2 | tt , eq rewrite eq | graft-[] {t1}
+ = nn
+graft-∈ {x} {y} {t} {ƛ z t1} ne nn | i1 , i2 | ff , eq rewrite eq
+ = varmem-remove3 {x} {z} {fvs (graft1 t y t1)} i1 (graft-∈ {x} {y} {t} {t1} ne i2)
+
+
+graft-~∈ : ∀{x : V}{t t' : Tm} →
+             x ∈ t' ≡ ff → 
+             graft ((x , t) :: []) t' ≡ t'
+graft-~∈ {x} {t} {var y} eq rewrite ~≃-sym{x} (∈var{x}{y}{ff} eq) = refl -- rewrite ~≃-sym{x} eq = refl
+graft-~∈ {x} {t} {t' · t''} eq rewrite graft-~∈{x}{t}{t'} (fst (∈·{x}{t'}{t''} eq))
+                                     | graft-~∈{x}{t}{t''} (snd (∈·{x}{t'}{t''} eq)) = refl
+graft-~∈ {x} {t} {ƛ y t'} eq with varmem-remove2{x}{y}{fvs t'} eq 
+graft-~∈ {x} {t} {ƛ y t'} eq | inj₁ i rewrite i | graft-[]{t'} = refl
+graft-~∈ {x} {t} {ƛ y t'} eq | inj₂ i with x ≃ y 
+graft-~∈ {x} {t} {ƛ y t'} eq | inj₂ i | tt rewrite graft-[]{t'} = refl
+graft-~∈ {x} {t} {ƛ y t'} eq | inj₂ i | ff rewrite graft-~∈{x}{t}{t'} i = refl
+
+fvs-graft : ∀{x : V}{t1 t2 : Tm} →
+               varsub (fvs (graft1 t2 x t1)) (varrem x (fvs t1) ++ fvs t2) ≡ tt
+fvs-graft {x} {var y} {t} with keep (x ≃ y)
+fvs-graft {x} {var y} {t} | tt , eq rewrite eq | ≃-sym{x} eq = isSublist-refl (λ{x} → ≃-refl{x}) {fvs t}
+fvs-graft {x} {var y} {t} | ff , eq rewrite eq | ~≃-sym{x} eq | ≃-refl{y} = refl
+fvs-graft {x} {t1 · t2} {t} = varsub-++il {fvs (graft [ x , t ] t1)}
+                                  {fvs (graft [ x , t ] t2)}
+                                  {varrem x (fvs t1 ++ fvs t2) ++ fvs t}
+                                  (varsub-trans {fvs (graft [ x , t ] t1)}
+                                    {varrem x (fvs t1) ++ fvs t}
+                                    {varrem x (fvs t1 ++ fvs t2) ++ fvs t} 
+                                    (fvs-graft{x}{t1}{t})
+                                    (varsub-++-merge {varrem x (fvs t1)}
+                                      {varrem x (fvs t1 ++ fvs t2)} {fvs t} {fvs t} 
+                                      (varsub-trans  {varrem x (fvs t1)}
+                                        {varrem x (fvs t1) ++ varrem x (fvs t2)}
+                                        {varrem x (fvs t1 ++ fvs t2)} 
+                                        (varsub-++1  {varrem x (fvs t1)}
+                                           {varrem x (fvs t2)}) h)
+                                           (varsub-refl {fvs t})))
+                                  (varsub-trans {fvs (graft [ x , t ] t2)}
+                                    {varrem x (fvs t2) ++ fvs t}
+                                    {varrem x (fvs t1 ++ fvs t2) ++ fvs t}
+                                    (fvs-graft {x} {t2} {t})
+                                    ((varsub-++-merge {varrem x (fvs t2)}
+                                      {varrem x (fvs t1 ++ fvs t2)} {fvs t} {fvs t} 
+                                      (varsub-trans  {varrem x (fvs t2)}
+                                        {varrem x (fvs t1) ++ varrem x (fvs t2)}
+                                        {varrem x (fvs t1 ++ fvs t2)} 
+                                        (varsub-++2a  {varrem x (fvs t1)}
+                                           {varrem x (fvs t2)}) h)
+                                           (varsub-refl {fvs t}))))
+    where h : isSublist (varrem x (fvs t1) ++ varrem x (fvs t2))
+                        (varrem x (fvs t1 ++ fvs t2)) _≃_
+              ≡ tt
+          h rewrite remove-++ _≃_ x (fvs t1) (fvs t2) | isSublist-refl{eq = _≃_} (λ{x} → ≃-refl{x})
+                                                            {varrem x (fvs t1) ++ varrem x (fvs t2)} = refl
+fvs-graft {x} {ƛ y t1} {t} with keep (x ≃ y)
+fvs-graft {x} {ƛ y t1} {t} | tt , eq rewrite eq | graft-[] {t1} | ≃-≡{x} eq | remove-idem{eq = _≃_}{y}{fvs t1} = varsub-++1{varrem y (fvs t1)}
+fvs-graft {x} {ƛ y t1} {t} | ff , eq rewrite eq  =
+  varsub-trans {varrem y (fvs (graft1 t x t1))}{varrem y (varrem x (fvs t1) ++ fvs t)}{varrem x (varrem y (fvs t1)) ++ fvs t}
+    (varsub-remove-both {fvs (graft1 t x t1)}
+      {varrem x (fvs t1) ++ fvs t} {y} (fvs-graft{x}{t1}{t})) h
+ where g : varsub (varrem y (varrem x (fvs t1)))
+                  (varrem x (varrem y (fvs t1)))
+            ≡ tt
+       g rewrite varrem-commute{x}{y}{fvs t1} = varsub-refl{varrem y (varrem x (fvs t1))}
+       h : varsub (varrem y (varrem x (fvs t1) ++ fvs t))
+                  (varrem x (varrem y (fvs t1)) ++ fvs t)
+            ≡ tt
+       h rewrite varrem-++{varrem x (fvs t1)}{fvs t}{y} =
+         varsub-++-merge {varrem y (varrem x (fvs t1))}
+          {varrem x (varrem y (fvs t1))} {varrem y (fvs t)} {fvs t} g (varsub-remove2 {fvs t} {fvs t} {y} (varsub-refl{fvs t})) 
+
+bvs-graft : ∀{x : V}{t1 t2 : Tm} →
+            varsub (bvs (graft1 t2 x t1)) (bvs t1 ++ bvs t2) ≡ tt
+bvs-graft {x} {var y} {t} with y ≃ x
+bvs-graft {x} {var y} {t} | tt = varsub-refl{bvs t}
+bvs-graft {x} {var y} {t} | ff = refl
+bvs-graft {x} {t1 · t2} {t} = varsub-++il {bvs (graft1 t x t1)} {bvs (graft1 t x t2)}
+                               {bvs (t1 · t2) ++ bvs t}
+                               (varsub-trans {bvs (graft1 t x t1)} {bvs t1 ++ bvs t}
+                                 {(bvs t1 ++ bvs t2) ++ bvs t}
+                                 (bvs-graft{x}{t1}{t})
+                                 (varsub-++-merge {bvs t1} {bvs t1 ++ bvs t2} {bvs t} {bvs t}
+                                   (varsub-++1{bvs t1}{bvs t2})
+                                   (varsub-refl{bvs t})))
+                               (varsub-trans {bvs (graft1 t x t2)} {bvs t2 ++ bvs t}
+                                 {(bvs t1 ++ bvs t2) ++ bvs t}
+                                 (bvs-graft{x}{t2}{t})
+                                 ((varsub-++-merge {bvs t2} {bvs t1 ++ bvs t2} {bvs t} {bvs t}
+                                   (varsub-++2a{bvs t1}{bvs t2})
+                                   (varsub-refl{bvs t}))))
+bvs-graft {x} {ƛ y t1} {t} with x ≃ y 
+bvs-graft {x} {ƛ y t1} {t} | tt rewrite ≃-refl{y} | graft-[]{t1} =
+   list-all-sub {p = λ a → varmem a (bvs t1 ++ bvs t)}
+                {q = λ a → (a ≃ y) || varmem a (bvs t1 ++ bvs t)}
+                (bvs t1)
+                (λ a → ||-intro2{a ≃ y})
+                (varsub-++1{bvs t1}{bvs t}) 
+bvs-graft {x} {ƛ y t1} {t} | ff rewrite ≃-refl{y} =
+   list-all-sub {p = λ a → varmem a (bvs t1 ++ bvs t)}
+                {q = λ a → (a ≃ y) || varmem a (bvs t1 ++ bvs t)}
+                (bvs (graft1 t x t1))
+                (λ a → ||-intro2{a ≃ y})
+                (bvs-graft{x}{t1}{t})
+
+fvs-∈-graft : ∀{s1 s2 : Tm}{x y : V} →
+              x ∈ s1 ≡ tt →
+              y ∈ s2 ≡ tt →
+              varmem x (bvs s2) ≡ ff → 
+              x ∈ (graft1 s1 y s2) ≡ tt
+fvs-∈-graft {s1} {var z} {x} {y} u1 u2 u3 rewrite ||-ff (y ≃ z) | ≃-sym{y} u2 = u1
+fvs-∈-graft {s1} {sa · sb} {x} {y} u1 u2 u3
+ rewrite varmem-++ y (fvs sa) (fvs sb) | varmem-++ x (fvs (graft1 s1 y sa)) (fvs (graft1 s1 y sb))
+       | varmem-++ x (bvs sa) (bvs sb)
+ with ||-elim{varmem y (fvs sa)} u2 
+fvs-∈-graft {s1} {sa · sb} {x} {y} u1 u2 u3 | inj₁ i
+ rewrite fvs-∈-graft{s1}{sa}{x}{y} u1 i (fst (||-≡-ff{varmem x (bvs sa)} u3)) = refl
+fvs-∈-graft {s1} {sa · sb} {x} {y} u1 u2 u3 | inj₂ i
+ rewrite fvs-∈-graft{s1}{sb}{x}{y} u1 i (snd (||-≡-ff{varmem x (bvs sa)} u3))
+       | ||-tt (varmem x (fvs (graft1 s1 y sa))) = refl
+fvs-∈-graft {s1} {ƛ z s2} {x} {y} u1 u2 u3 with ∈ƛ{y}{z}{s2} u2
+fvs-∈-graft {s1} {ƛ z s2} {x} {y} u1 u2 u3 | ua , ub rewrite ua =
+ varmem-remove3 {x} {z} {fvs (graft1 s1 y s2)} (fst (||-≡-ff{x ≃ z} u3))
+  (fvs-∈-graft {s1} {s2} {x} {y} u1 ub (snd (||-≡-ff{x ≃ z} u3))) 
