@@ -78,3 +78,39 @@ AllDistinct-αc : ∀{t : Tm}{n : V}{ρ : Renaming} →
                  Ubounded (ranr ρ) n → 
                  AllDistinct (ranr ρ) (αc n ρ t) 
 AllDistinct-αc{t}{n}{ρ} sb ub = (varunique-αc{t}{n}{ρ}) , (PathDistinct-αc{t}{n}{ρ} sb ub)
+
+PathDistinct-Apart' : ∀{t : Tm}{vs vs' : 𝕃 V} →
+                PathDistinct vs' t →
+                varsub vs vs' ≡ tt → 
+                varapart vs (bvs t) ≡ tt
+PathDistinct-Apart' {var x} {vs} {vs'} pd sb = varapart-[]{vs}
+PathDistinct-Apart' {t1 · t2} {vs} {vs'} (app pd1 pd2) sb = varapart-++i {vs} {bvs t1} {bvs t2}
+                                            (PathDistinct-Apart'{t1}{vs}{vs'} pd1 sb) 
+                                            (PathDistinct-Apart'{t2}{vs}{vs'} pd2 sb) 
+PathDistinct-Apart' {ƛ x t} {vs} {vs'} (lam u pd) sb = 
+ varapart-++i {vs} {[ x ]} {bvs t}
+   (varapart-sym {[ x ]} {vs} h )
+   (PathDistinct-Apart' {t} {vs} {x :: vs'} pd (varsub-++2{[ x ]}{vs}{vs'} sb))
+ where h : varapart [ x ] vs ≡ tt
+       h rewrite varmem-varsub-ff{x}{vs}{vs'} sb (~-≡-tt {varmem x vs'} (~-≡-ff u)) = refl
+
+PathDistinct-fvs : ∀{t : Tm}{vs : 𝕃 V} → 
+                   PathDistinct vs t →
+                   varsub (fvs t) vs ≡ tt 
+PathDistinct-fvs {var x} {vs} (var u) rewrite u = refl
+PathDistinct-fvs {t1 · t2} {vs} (app pd1 pd2) =
+ varsub-++il {fvs t1} {fvs t2} {vs}
+  (PathDistinct-fvs{t1}{vs} pd1)
+  (PathDistinct-fvs{t2}{vs} pd2)
+PathDistinct-fvs {ƛ x t} {vs} (lam _ pd) = varsub-remove1 {fvs t} {vs} {x} (PathDistinct-fvs{t}{x :: vs} pd)
+
+fvs-αc : ∀{t : Tm}{n : V}{ρ : Renaming} →
+         varsub (fvs t) (domr ρ) ≡ tt → 
+         varsub (fvs (αc n ρ t)) (ranr ρ) ≡ tt
+fvs-αc {var x}{n} {ρ} sb rewrite varmem-rename{x}{ρ} (&&-elim1 sb) = refl
+fvs-αc {t1 · t2}{n} {ρ} sb rewrite varsub-++{fvs t1}{fvs t2}{domr ρ} =
+ varsub-++il {fvs (αc (ff :: n) ρ t1)} {fvs (αc (tt :: n) ρ t2)} {ranr ρ}
+    (fvs-αc{t1}{ff :: n}{ρ} (&&-elim1 sb)) (fvs-αc{t2}{tt :: n}{ρ} (&&-elim2 sb))
+fvs-αc {ƛ x t}{n} {ρ} sb =
+ varsub-remove1 {fvs (αc (ff :: n) ((x , n) :: ρ) t)} {ranr ρ} {n}
+  (fvs-αc {t}{ff :: n} {(x , n) :: ρ} (varsub-remove {fvs t} {domr ρ} {x} sb))

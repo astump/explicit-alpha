@@ -9,6 +9,7 @@ open VI VI-𝕃𝔹
 open import VarOps VI-𝕃𝔹
 open import Tm VI-𝕃𝔹
 open import Renaming VI-𝕃𝔹
+open import Fresh 
 
 {- PathDistinct vs t
 
@@ -60,3 +61,7 @@ AllDistinct vs t = varunique (bvs t) ≡ tt ∧ PathDistinct vs t
 αc n ρ (ƛ x t) =
  ƛ n (αc (ff :: n) ((x , n) :: ρ) t)
 
+αcanon : Tm → Tm
+αcanon t =
+ let vs = fvs t in
+   αc (fresh vs) (diagonal vs) t

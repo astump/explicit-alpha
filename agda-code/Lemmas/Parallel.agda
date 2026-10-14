@@ -1,31 +1,37 @@
 open import lib
 open import relations
 open import VarInterface
+open import VarImpls
 
 module Lemmas.Parallel(vi : VI) where
 
-open VI vi
+open VI VI-𝕃𝔹
 
-open import Tm vi
-open import Subst vi
-open import Substitution vi
-open import Apart vi
-open import VarOps vi
-open import AlphaCanon vi
-open import Beta vi
-open import Tau vi
-open import Parallel vi
-open import Takahashi vi
+open import Tm VI-𝕃𝔹
+open import Subst VI-𝕃𝔹
+open import Substitution VI-𝕃𝔹
+open import Apart VI-𝕃𝔹
+open import VarOps VI-𝕃𝔹
+open import Fresh
+open import AlphaCanon 
+open import Beta VI-𝕃𝔹
+open import Tau VI-𝕃𝔹
+open import Parallel VI-𝕃𝔹
+open import Renaming VI-𝕃𝔹
+open import Takahashi 
 
-open import Lemmas.VarOps vi
-open import Lemmas.Tm vi
-open import Lemmas.Beta vi
-open import Lemmas.Tau vi
-open import Lemmas.VarInterface vi
-open import Lemmas.Apart vi
-open import Lemmas.AlphaCanon vi
-open import Lemmas.Takahashi vi
-open import Lemmas.Substitution vi
+open import Lemmas.VarOps VI-𝕃𝔹
+open import Lemmas.Tm VI-𝕃𝔹
+open import Lemmas.Beta VI-𝕃𝔹
+open import Lemmas.Tau VI-𝕃𝔹
+open import Lemmas.VarInterface VI-𝕃𝔹
+open import Lemmas.Apart VI-𝕃𝔹
+open import Lemmas.AlphaCanon 
+open import Lemmas.Takahashi 
+open import Lemmas.Fresh
+open import Lemmas.Renaming VI-𝕃𝔹
+open import Lemmas.Substitution VI-𝕃𝔹
+open import Lemmas.Subst VI-𝕃𝔹
 
 
 -- parallel reduction without alpha is reflexive
@@ -33,6 +39,7 @@ open import Lemmas.Substitution vi
 ⇒αβ-refl {var x} = var
 ⇒αβ-refl {t · t₁} = app ⇒αβ-refl ⇒αβ-refl
 ⇒αβ-refl {ƛ x t} = lam ⇒αβ-refl
+
 
 ⇒αβ-relax : ∀{s t : Tm}{b : 𝔹} →
             b ≡ tt → 
@@ -48,6 +55,7 @@ open import Lemmas.Substitution vi
   (⇒αβ-relax{s2}{t1'} (&&-elim1 u) x) (⇒αβ-relax {t2} {t2'} (&&-elim2 u) x₁)
   x₂
 ⇒αβ-relax {ƛ x s} {ƛ x t} u (lam x₁) = lam (⇒αβ-relax{s}{t} u x₁)
+
 
 ⇒αβ-relax' : ∀{s t : Tm}{b : 𝔹} →
              s ⟨ ⇒αβ b ⟩ t →
@@ -76,31 +84,32 @@ open import Lemmas.Substitution vi
 ⇒αβ-bvs : preserves-set (⇒αβ tt) bvs _≃_
 ⇒αβ-bvs d = ↝β⋆-bvs (⇒αβ-β refl d) 
 
+
 {- Terms that are path distinct with respect to a set vs
    reduce to their complete developments, without alpha steps -}
 PathDistinct-tk : ∀{t : Tm}{vs : 𝕃 V} →
-           PathDistinct vs t ≡ tt →
+           PathDistinct vs t →
            t ⟨ ⇒αβ tt ⟩ (tk t)
-PathDistinct-tk{var x}{vs} ok = var
-PathDistinct-tk{var x · t}{vs} ok = app var (PathDistinct-tk{t}{vs} (&&-elim2 ok))
-PathDistinct-tk{t1 · t2 · t3}{vs} ok =
- app (PathDistinct-tk{t1 · t2}{vs} (&&-elim1 ok))
-     (PathDistinct-tk{t3}{vs} (&&-elim2 ok))
-PathDistinct-tk{(ƛ x t1) · t2}{vs} ok =
-  let p = &&-elim2{~ varmem x vs} (&&-elim1 ok) in
+PathDistinct-tk{var x}{vs} pd = var
+PathDistinct-tk{var x · t}{vs} (app _ pd2) = app var (PathDistinct-tk{t}{vs} pd2)
+PathDistinct-tk{t1 · t2 · t3}{vs} (app pd1 pd2) =
+ app (PathDistinct-tk{t1 · t2}{vs} pd1)
+     (PathDistinct-tk{t3}{vs} pd2)
+PathDistinct-tk{(ƛ x t1) · t2}{vs} (app (lam u pd1) pd2)  =
    beta {t2} {x} {t1} {tk t2} {tk t1} {graft1 (tk t2) x (tk t1)} {tt} {tt}
     (PathDistinct-tk {t2} {vs}
-      (&&-elim2 ok))
+      pd2)
     (PathDistinct-tk {t1} {x :: vs} 
-        p)
+        pd1)
     (substLem (varapart-varsub {bvs (tk t1)} {bvs t1} {fvs (tk t2)} {fvs t2}
                 (varsub-bvs-tk{t1}) (varsub-fvs-tk{t2})
                  (varapart-sym {fvs t2} {bvs t1}
-                  (PathDistinct-Apart'{t1}{fvs t2}{x :: vs} p h))))
+                  (PathDistinct-Apart'{t1}{fvs t2}{x :: vs} pd1 h))))
  where h : varsub (fvs t2) (x :: vs) ≡ tt                  
-       h = varsub-++2 {[ x ]} {fvs t2} {vs} (PathDistinct-fvs{t2}{vs} (&&-elim2 ok)) 
-PathDistinct-tk{ƛ x t}{vs} ok =
- lam (PathDistinct-tk {t} {x :: vs} (&&-elim2 ok))
+       h = varsub-++2 {[ x ]} {fvs t2} {vs} (PathDistinct-fvs{t2}{vs} pd2)
+PathDistinct-tk{ƛ x t}{vs} (lam u pd) =
+ lam (PathDistinct-tk {t} {x :: vs} pd)
+
 
 {--------------------------------------------------------------------------------
  - Main theorem 1:
@@ -111,15 +120,20 @@ PathDistinct-tk{ƛ x t}{vs} ok =
 ⇒αtk : ∀{t : Tm} →
        let a = αcanon t in
         a ⟨ ⇒αβ tt ⟩ tk a 
-⇒αtk{t} = PathDistinct-tk (αc-PathDistinct{t} h)
- where h : varsub (fvs t) (domr (diagonal (fvs t))) ≡ tt
-       h rewrite domr-diag{fvs t} = varsub-refl{fvs t}
-       hi : varsub (fvs t) (domr (diagonal (fvs t))) ≡ tt
-       hi rewrite domr-diag{fvs t} = varsub-refl{fvs t}
-       h2 : varsub (fvs (αcanon t)) (ranr (diagonal (fvs t))) ≡ tt
-       h2 with fvs-αc{t}{diagonal (fvs t)} hi 
-       h2 | u rewrite ranr-diag{fvs t} = u
+⇒αtk{t} = PathDistinct-tk (PathDistinct-αc{t} h h3)
+ where vs : 𝕃 V
+       vs = fvs t
+       h : varsub vs (domr (diagonal (vs))) ≡ tt
+       h rewrite domr-diag{vs} = varsub-refl{vs}
+       hi : varsub (vs) (domr (diagonal (vs))) ≡ tt
+       hi rewrite domr-diag{vs} = varsub-refl{vs}
+       h2 : varsub (fvs (αcanon t)) (ranr (diagonal (vs))) ≡ tt
+       h2 with fvs-αc{t}{fresh vs}{diagonal vs} hi 
+       h2 | u rewrite ranr-diag{vs} = u
+       h3 : Ubounded (ranr (diagonal (fvs t))) (fresh (fvs t))
+       h3 rewrite ranr-diag{fvs t} = Ubounded-fresh{fvs t}
 
+{-
 {--------------------------------------------------------------------------------
 - Corollary
 
@@ -188,3 +202,4 @@ PathDistinct-tk{ƛ x t}{vs} ok =
                  (⇒αβ-all-to-path {t} {tk t} {tt} {fvs t} refl ad
                    (PathDistinct-tk{t}{fvs t} (all-to-path{t} ad)))
 
+-}
