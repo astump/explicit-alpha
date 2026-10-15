@@ -56,19 +56,37 @@ Varle-::1{x}{n}{b} (y , u) rewrite sym u = y ++ [ b ] , ++-assoc y [ b ] n
 Vargt-:: : ∀{n x : V}{b : 𝔹} →
            Vargt n x →
            Vargt (b :: n) x
-Vargt-::{n}{x}{b} ((y , refl) , u2) = Varle-:: {x} {n} (y , refl) , invert++
+Vargt-::{n}{x}{b} ((y , refl) , u2) = Varle-:: {x} {n} (y , refl) , invert++{z = []}
 
 Vargt-::2 : ∀{n : V}{b : 𝔹} →
             Vargt (b :: n) n
-Vargt-::2{n}{b} = ([ b ] , refl) , (invert++{𝔹}{b}{n}{[]})
+Vargt-::2{n}{b} = ([ b ] , refl) , (invert++{𝔹}{b}{n}{[]}{[]})
 
 Varle-cong : ∀{n b c : V} → Varle n c → b ≃ c ≡ tt → Varle n b
 Varle-cong{nn}{b}{c} v u rewrite ≃-≡{b} u = v
+
+Varlt-le-trans : ∀{m n v : V} →
+                 Varlt m n →
+                 Varle n v →
+                 Varlt m v
+Varlt-le-trans {m} {n} {v} (([] , refl) , yneq) (z , zeq) = ⊥-elim (yneq refl)
+Varlt-le-trans {m} {n} {v} ((x :: y , yeq) , yneq) (z , zeq)
+  rewrite sym yeq | sym (++-assoc z (x :: y) m) = (z ++ x :: y , zeq) , h
+  where h : m ≢ v
+        h refl = invert++{𝔹}{x}{m}{y}{z} (sym zeq)
 
 Ubounded-:: : ∀{vs : 𝕃 V}{n : V}{b : 𝔹} →
              Ubounded vs n →
              Ubounded vs (b :: n) 
 Ubounded-::{vs}{n}{b} u {v} le = u (Varle-::1 le)
+
+Ubounded-::2 : ∀{vs : 𝕃 V}{n m : V} →
+               Ubounded vs n →
+               Varlt m n → 
+               Ubounded (m :: vs) n
+Ubounded-::2{vs}{n}{m} ub lt {v} le' with Varlt-le-trans{m}{n}{v} lt le' | keep (v ≃ m) 
+Ubounded-::2{vs}{n}{m} ub lt {v} le' | (u , neq) | tt , eq = ⊥-elim (neq (sym (≃-≡{v} eq)))
+Ubounded-::2{vs}{n}{m} ub lt {v} le' | (u , neq) | ff , eq rewrite eq = ub le'
 
 varmem-fresh : ∀{vs : 𝕃 V}{x : V} →
                varmem x vs ≡ tt →

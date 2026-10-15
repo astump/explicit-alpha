@@ -133,7 +133,7 @@ PathDistinct-tk{ƛ x t}{vs} (lam u pd) =
        h3 : Ubounded (ranr (diagonal (fvs t))) (fresh (fvs t))
        h3 rewrite ranr-diag{fvs t} = Ubounded-fresh{fvs t}
 
-{-
+
 {--------------------------------------------------------------------------------
 - Corollary
 
@@ -147,10 +147,11 @@ PathDistinct-tk{ƛ x t}{vs} (lam u pd) =
 
 ↝β-tk : ∀{t : Tm}{vs : 𝕃 V} →
          varsub (fvs t) vs ≡ tt → 
-         PathDistinct vs t ≡ tt →
+         PathDistinct vs t →
          t ⟨ ↝β ⋆ ⟩ tk t
 ↝β-tk{t}{vs} sb di = ⇒αβ-β refl (PathDistinct-tk{t}{vs} di)
 
+{-
 
 {- If
 
@@ -164,12 +165,12 @@ PathDistinct-tk{ƛ x t}{vs} (lam u pd) =
 -}   
 ⇒αβ-all-to-path : ∀{s t : Tm}{b : 𝔹}{vs : 𝕃 V} →
                   b ≡ tt →   -- no alpha steps
-                  allDistinct vs s ≡ tt →
+                  AllDistinct vs s →
                   s ⟨ ⇒αβ b ⟩ t → 
-                  PathDistinct vs t ≡ tt 
-⇒αβ-all-to-path {var x} {var _}{_}{vs} _ ad var = all-to-path {var x}{vs} ad
+                  PathDistinct vs t 
+⇒αβ-all-to-path {var x} {var _}{_}{vs} _ (pd , _) var = pd
 ⇒αβ-all-to-path {s1 · s2} {t1 · t2}{_}{vs} beq ad (app{b1 = b1}{b2} d1 d2)
-  rewrite ⇒αβ-all-to-path{s1}{t1}{b1}{vs} (&&-elim1 beq) (allDistinct-app1{s1}{s2}{vs} ad) d1 =
+  rewrite ⇒αβ-all-to-path{s1}{t1}{b1}{vs} (&&-elim1 beq) (AllDistinct-app1{s1}{s2}{vs} ad) d1 =
   ⇒αβ-all-to-path{s2}{t2}{b2}{vs} (&&-elim2 beq) (allDistinct-app2{s1}{s2}{vs} ad) d2
 ⇒αβ-all-to-path {(ƛ x s1) · s2} {t}{_}{vs} beq ad (beta{x = x}{t1' = t2'}{t1'}{b1 = b1}{b2} d1 d2 sb) rewrite &&-elim1{b1} beq | &&-elim2{b1} beq =
   PathDistinct-Subst {t2'} {t1'} {t} {x} {[]} {vs}
@@ -187,6 +188,7 @@ PathDistinct-tk{ƛ x t}{vs} (lam u pd) =
 ⇒αβ-all-to-path {ƛ x s} {ƛ y t}{b}{vs} beq ad (lam d) | vm , ad' rewrite vm =
   ⇒αβ-all-to-path {s} {t} {b} {x :: vs} beq ad' d
 
+
 {----------------------------------------------------------------------
  - Another main theorem
 
@@ -201,5 +203,6 @@ PathDistinct-tk{ƛ x t}{vs} (lam u pd) =
                ↝β-tk {tk t} {fvs t} (varsub-fvs-tk{t})
                  (⇒αβ-all-to-path {t} {tk t} {tt} {fvs t} refl ad
                    (PathDistinct-tk{t}{fvs t} (all-to-path{t} ad)))
+
 
 -}
